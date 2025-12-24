@@ -8,8 +8,6 @@ init_database()
 
 app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# app = Dash(__name__, pages_folder='pages', external_stylesheets=[dbc.themes.BOOTSTRAP])
-
 app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.H1("Knowledge on Sustainable & Green IT", className="text-center mb-4")),
