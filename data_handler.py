@@ -37,7 +37,6 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, Any]]:
         return get_data()
     else:
         tags_list = tags.split(";")
-        print(tags_list)
         placeholders = ", ".join(["?"] * len(tags_list))
         conn = sqlite3.connect(NAME_DB)
         query = f"""
@@ -47,7 +46,6 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, Any]]:
         JOIN tags t ON r.tag_name = t.name
         WHERE t.name IN ({placeholders});
         """
-        print(query)
         df = pd.read_sql_query(query, conn, params=tags_list)
         conn.close()
     return df.to_dict("records")

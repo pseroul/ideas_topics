@@ -1,7 +1,7 @@
 import dash
 import data_handler
 import dash_bootstrap_components as dbc
-from typing import Any, Hashable
+from typing import Any, Hashable, Literal
 from dash import html, dcc, Input, Output, State, dash_table, callback, ctx
 
 
@@ -15,15 +15,15 @@ layout = dbc.Container([
         dbc.CardHeader("Data"),
         dbc.CardBody([
             dcc.Input(id="input-data-name", type="text", placeholder="Data name", className="mb-2"),
-            dcc.Input(id="input-data-description", type="text", placeholder="Description", className="mb-2"),
             dbc.Button("add", id="button-add-data", color="primary"),
             dbc.Button("remove", id="button-remove-data", color="primary"),
+            dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="mb-2"),
             dash_table.DataTable(
                 id="table-data",
-                columns=[{"name": "Nom", "id": "name"}, {"name": "Description", "id": "description"}],
+                columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
                 data=[],
-                page_size=10,
-            )
+                page_size=10)
+            
         ])
     ], className="mb-4"),
 
@@ -76,6 +76,17 @@ def callback_data(add_clicks, rm_clicks, name: str, description: str) -> list[di
         data_handler.remove_data(name)
     return data_handler.get_data()
 
+@callback(
+    Output("input-data-name", "value"), 
+    Output("input-data-description", "value"), 
+    Input("table-data", "active_cell"), 
+    State('table-data', 'data')
+)
+def callback_data_cell(active_cell, table_data) -> tuple[Literal[''], Literal['']]: 
+    if active_cell is None:
+        return "", ""
+    row_data = table_data[active_cell['row']]
+    return row_data['name'], row_data['description']
 
 @callback(
     Output("table-tags", "data"),
@@ -90,6 +101,7 @@ def callback_tag(add_clicks, rm_clicks, name: str) -> list[dict[Hashable, Any]]:
         data_handler.remove_tag(name)
     return data_handler.get_tags()
 
+
 @callback(
     Output("table-relations", "data"),
     Input("button-add-relation", "n_clicks"),
@@ -103,6 +115,7 @@ def callback_add_relation(add_clicks, rm_clicks, data_name: str, tag_name: str) 
     elif ctx.triggered_id == "button-remoce-relation" and data_name and tag_name: 
         data_handler.remove_relation(data_name, tag_name)
     return data_handler.get_relations()
+
 
 @callback(
     Output("dropdown-data", "options"),
