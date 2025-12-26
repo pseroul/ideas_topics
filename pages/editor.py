@@ -18,6 +18,7 @@ layout = dbc.Container([
             dbc.Button("add", id="button-add-data", color="primary"),
             dbc.Button("remove", id="button-remove-data", color="primary"),
             dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="mb-2"),
+            dbc.Button("update", id="button-update-data", color="primary"),
             dash_table.DataTable(
                 id="table-data",
                 columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
@@ -65,15 +66,18 @@ layout = dbc.Container([
 @callback(
     Output("table-data", "data"),
     [Input("button-add-data", "n_clicks"),
-    Input("button-remove-data", "n_clicks")],
+    Input("button-remove-data", "n_clicks"),
+    Input("button-update-data", "n_clicks")],
     [State("input-data-name", "value"),
     State("input-data-description", "value")]
 )
-def callback_data(add_clicks, rm_clicks, name: str, description: str) -> list[dict[Hashable, Any]]:
+def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str) -> list[dict[Hashable, Any]]:
     if ctx.triggered_id == "button-add-data" and name and description:
         data_handler.add_data(name, description)
     elif ctx.triggered_id == "button-remove-data" and name:
         data_handler.remove_data(name)
+    elif ctx.triggered_id == "button-update-data" and name:
+        data_handler.update_data(name, description)
     return data_handler.get_data()
 
 @callback(

@@ -160,5 +160,18 @@ def remove_relation(data_name: str, tag_name: str) -> None:
     finally:
         conn.close()
 
-
+def update_data(name: str, description: str) -> None:
+    conn = sqlite3.connect(NAME_DB)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE data SET description = ? WHERE name = ?",
+            (description, name)
+        )
+        conn.commit()
+        print(f"data '{name}'  updated successfully.")
+    except sqlite3.IntegrityError:
+        print(f"Errr : data '{name}' can't be updated.")
+    finally:
+        conn.close()
 
