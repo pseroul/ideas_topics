@@ -13,7 +13,7 @@ init_database()
 
 # --- CONFIGURATION ---
 server = flask.Flask(__name__)
-server.secret_key = 'remplacez_ceci_par_une_cle_tres_secrete'
+server.secret_key = 'remplacez_ceci par_une_cl3_tres_secrete'
 
 # --- FLASK LOGIN ---
 login_manager = LoginManager()

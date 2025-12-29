@@ -4,3 +4,4 @@ dash-bootstrap-components
 flask-login
 pyotp
 qrcode
+gunicorn
