@@ -4,9 +4,6 @@ import dash_bootstrap_components as dbc
 from typing import Any, Hashable, Literal
 from dash import html, dcc, Input, Output, State, dash_table, callback, ctx
 
-
-dash.register_page(__name__, name="Edition")
-
 layout = dbc.Container([
     html.H2("Knowledge Edition", className="mb-4"),
 

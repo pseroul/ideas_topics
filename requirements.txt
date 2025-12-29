@@ -1,3 +1,6 @@
 dash
 pandas
 dash-bootstrap-components
+flask-login
+pyotp
+qrcode
