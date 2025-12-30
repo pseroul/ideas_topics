@@ -10,7 +10,7 @@ pip install -r requirements.txt
 ```
 
 ## Run
-### run the server in debug mode
+### run the server in debug mode (local)
 ```
 python app.py
 ```
@@ -23,7 +23,7 @@ sudo apt install nginx
 ```
 - Install and run Gunicorn on your system
 ```
-gunicorn -bind 0.0.0.0:8050
+gunicorn --bind 0.0.0.0:8050 app:server
 ```
 - Configure nginx to serve your application
   - Create file */etc/nginx/sites-available/ideas_handler* and paste the following code:
@@ -47,6 +47,16 @@ gserver {
   ```
   sudo systemctl restart nginx
   ```
+
+#### Use a domain name instead of a public IP
+Go to OVH and: 
+- Buy a domain name (in our case pierreseroul.com)
+- Configure the DNS: 
+  - Go to Zone DNS
+  - Select your domain
+  - Change the 'A' type entries target by your public IP address. 
+
+#### Use certificates for https connection
 
 ## Generate user
 To generate a single user with 2FA authenticator, execute the command line:
