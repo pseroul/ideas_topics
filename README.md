@@ -1,6 +1,6 @@
 
 # Ideas / Note handler
-This application allows to enter new ideas or not and add tags to them. You can then visualize them in a smart way. 
+This application allows to enter new ideas or notes and add tags to them. You can then visualize them in a smart way. 
 
 # Install
 To install the application, follow the steps: 
@@ -27,8 +27,14 @@ User account and ideas are stored in the directory called *data*.
 
 # Deployment in production
 ## Configure your router and Pi
-- Open firewall and forward port 80 (http) & 443 (https) on your router
-- Open your Raspberry Pi port 80 (http) & 443 (https)
+- Open firewall and forward port 80 (http) & 443 (https) on your router (look at your router documentation)
+- Open your Raspberry Pi port 80 (http) & 443 (https):
+```
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw reload
+```
+
 
 ## Install and run nginx
 ```
@@ -103,4 +109,19 @@ Go to OVH and:
 In your nginx configuration file, replace your **[your_public_ip_address]** by **[your_domain_name]**.
 
 ## Use certificates for https connection
+> Warning: this is only feasible if you have a domain name and not a public IP address.
 
+Install and run Certbot:
+```
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d [your_domain.com]
+```
+Skip email address settings...
+
+Certbot rewrite your nginx configuration with the appropriate certificates.
+
+Close http port:
+```
+sudo ufw delete allow 80/tcp
+sudo ufw reload
+```
