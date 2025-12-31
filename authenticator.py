@@ -2,7 +2,7 @@ import pyotp
 import json
 import argparse
 
-def generate_auth_link(email: str, mdp: str):
+def generate_auth_link(email: str, mdp: str, debug: bool) -> None:
     otp_secret = pyotp.random_base32()
     
     user = {
@@ -15,7 +15,11 @@ def generate_auth_link(email: str, mdp: str):
         f.write(json_str)
 
     totp = pyotp.TOTP(otp_secret)
-    print(f"Pasted the following link in Qr.io to obtain a QR code : {totp.provisioning_uri(name='IdeaManager', issuer_name='SeroulPi')}")
+    appname = 'IdeaManager'
+    if debug: 
+        appname = "IdeaManagerDebug"
+
+    print(f"Pasted the following link in Qr.io to obtain a QR code : {totp.provisioning_uri(name=appname, issuer_name='ServerPi')}")
 
 def get_user() -> tuple[str, str]:
     with open("data/users.json", "r") as f:
@@ -28,10 +32,11 @@ def get_otp_secret():
     return user['otp_secret']
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Create user with authentication')
+    parser = argparse.ArgumentParser(description='Create user and generate Google Auth')
     parser.add_argument('email', type=str, help='Email of the user')
     parser.add_argument('pwd', type=str, help='Password of the user')
+    parser.add_argument('-d', '--debug', help='generate a Google Auth for debug purpose', action="store_true")
 
     args = parser.parse_args()
 
-    generate_auth_link(args.email, args.pwd)
+    generate_auth_link(args.email, args.pwd, args.debug)

@@ -37,21 +37,21 @@ app.layout = html.Div([
 ])
 
 home_layout = html.Div([
-    html.H1("Tableau de bord Raspberry Pi"),
-    html.P("Bienvenue dans votre interface de contrôle centralisée."),
+    html.H1("Idea manager homepage"),
+    html.P("Welcome to the main interface"),
     html.Ul([
         html.Li("Access to Edition to add new ideas/notes."),
         html.Li("Visualize database and navigate into ideas."),
     ])
 ])
 
-# Formulaire de Connexion
+
 login_layout = html.Div([
-    html.H2("Connexion Sécurisée"),
+    html.H2("Secured Connection"),
     dcc.Input(id='email', type='text', placeholder='Email'),
-    dcc.Input(id='pwd', type='password', placeholder='Mot de passe'),
-    dcc.Input(id='otp', type='text', placeholder='Code Google Authenticator (6 chiffres)'),
-    html.Button('Se connecter', id='login-button', n_clicks=0),
+    dcc.Input(id='pwd', type='password', placeholder='Password'),
+    dcc.Input(id='otp', type='text', placeholder='Code Google Authenticator (6 digits)'),
+    html.Button('Connect', id='login-button', n_clicks=0),
     html.Div(id='login-error', style={'color': 'red'})
 ], style={'textAlign': 'center', 'marginTop': '100px'})
 
@@ -76,14 +76,14 @@ app.layout = html.Div([
     [Output('page-content', 'children'), Output('navbar-container', 'children')],
     [Input('url', 'pathname')]
 )
-def display_page(pathname):
+def display_page(pathname: str):
     if not current_user.is_authenticated:
         return login_layout, None
     
     nav = navbar()
     if pathname == '/edit': return editor.layout, nav
     if pathname == '/viz': return viewer.layout, nav
-    return home_layout, nav # Par défaut : Accueil
+    return home_layout, nav 
 
 # Logique de vérification Login + OTP
 @app.callback(
@@ -113,9 +113,6 @@ def logout():
     logout_user()
     return flask.redirect('/login')
 
-# if __name__ == '__main__':
-#     app.run_server(host='0.0.0.0', port=8050, debug=False)
-
 if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    app.run(debug=True)
+    app.run()

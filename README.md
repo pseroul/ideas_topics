@@ -1,6 +1,6 @@
 
 # Ideas / Note handler
-This application allows to enter new ideas or notes and add tags to them. You can then visualize them in a smart way. 
+This application allows to enter new **ideas/descriptions** or **title/notes** and add **tags** to them. You can then visualize them in a smart way. 
 
 # Install
 To install the application, follow the steps: 
@@ -10,20 +10,23 @@ pip install -r requirements.txt
 ```
 
 # Run
-run the server in debug mode (local)
+### Generate user
+To generate a single user with 2FA authenticator, execute the command line:
+```
+python authenticator.py <email> <password> (--debug)
+```
+This will print a link that you can passed to Qr.io to generate a QR Code or directly paste in your Google Authenticator app.
+You can use the optional *--debug* argument To create a debug Auth. It helps if you want to have one auth for your production environment and another one for debug purpose.
+
+
+### Run the server in debug mode (local)
 ```
 python app.py
 ```
 
-# Generate user
-To generate a single user with 2FA authenticator, execute the command line:
-```
-python authenticator.py <email> <password>
-```
-This will print a link that you can passed to Qr.io to generate a QR Code or directly paste in your Google Authenticator app.
-
-## data storage
+### data storage
 User account and ideas are stored in the directory called *data*. 
+
 
 # Deployment in production
 ## Configure your router and Pi
@@ -67,11 +70,11 @@ gserver {
 ## Install and run Gunicorn on your system (prod server compared to debug dash server)
 Gunicorn is a production server. Not like the own served by Dash. To go into production, use gunicorn.
 
-Either once 
+### Either run it once:
 ```
 gunicorn --bind 0.0.0.0:8050 app:server
 ```
-Or as a service started after each server restart.
+### Or as a service started after each server restart:
 
 ```
 sudo nano /etc/systemd/system/ideas_handler.service
@@ -100,7 +103,7 @@ sudo systemctl restart ideas_handler.service
 
 ## Use a domain name instead of a public IP
 Go to OVH and: 
-- Buy a domain name (in our case pierreseroul.com)
+- Buy a domain name
 - Configure the DNS: 
   - Go to Zone DNS
   - Select your domain
