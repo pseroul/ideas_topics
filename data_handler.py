@@ -1,9 +1,8 @@
 import sqlite3
 from typing import Any, Hashable
 import pandas as pd
+from config import NAME_DB
 
-# Nom de la base de datas
-NAME_DB = "data/knowledge.db"
 
 def init_database() -> None:
     print("init_database")

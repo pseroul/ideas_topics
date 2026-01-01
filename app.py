@@ -37,25 +37,35 @@ app.layout = html.Div([
 ])
 
 home_layout = html.Div([
-    html.H1("Idea manager homepage"),
-    html.P("Welcome to the main interface"),
-    html.Ul([
-        html.Li("Access to Edition to add new ideas/notes."),
-        html.Li("Visualize database and navigate into ideas."),
-    ])
+    html.Div([
+        html.H1("Idea manager"),
+        html.P("Welcome to the main interface", className="subtitle"),
+        html.Div([
+            html.Div([
+                html.H3("Edition"),
+                html.P("Access to Edition to add new ideas/notes."),
+                dcc.Link("Open editor", href="/edit", className="btn-secondary")
+            ], className="card"),
+            html.Div([
+                html.H3("Viewer"),
+                html.P("Visualize database and navigate into ideas."),
+                dcc.Link("Navigate", href="/viz", className="btn-secondary")
+            ], className="card"),
+        ], className="grid-2")
+    ], className="content-container")
 ])
-
 
 login_layout = html.Div([
     html.H2("Secured Connection"),
-    dcc.Input(id='email', type='text', placeholder='Email'),
-    dcc.Input(id='pwd', type='password', placeholder='Password'),
-    dcc.Input(id='otp', type='text', placeholder='Code Google Authenticator (6 digits)'),
-    html.Button('Connect', id='login-button', n_clicks=0),
-    html.Div(id='login-error', style={'color': 'red'})
-], style={'textAlign': 'center', 'marginTop': '100px'})
+    dcc.Input(id='email', type='text', placeholder='Email', className="form-input"),
+    dcc.Input(id='pwd', type='password', placeholder='Password', className="form-input"),
+    dcc.Input(id='otp', type='text', placeholder='Code Google Authenticator (6 digits)', className="form-input"),
+    html.Button('Connect', id='login-button', n_clicks=0, className="btn-primary"),
+    html.Div(id='login-error', className="error-msg")
+], className="page-wrapper center-content")
 
-# Barre de navigation (visible uniquement si connecté)
+
+# Navigation bar, only visible if connected
 def navbar():
     return html.Nav([
         dcc.Link('Home', href='/home', className="nav-link"),
@@ -115,4 +125,4 @@ def logout():
 
 if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    app.run()
+    app.run(debug=True)

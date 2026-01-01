@@ -1,0 +1,167 @@
+/* --- VARIABLES ET BASE --- */
+:root {
+    --primary: #2ecc71;
+    --primary-dark: #27ae60;
+    --bg-color: #f4f7f6;
+    --dark: #2c3e50;
+    --white: #ffffff;
+    --error: #e74c3c;
+    --text: #34495e;
+}
+
+body {
+    background-color: var(--bg-color);
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text);
+}
+
+/* --- STRUCTURE --- */
+.page-wrapper { min-height: 100vh; }
+.center-content { display: flex; justify-content: center; align-items: center; }
+.content-container { padding: 20px; max-width: 1000px; margin: auto; }
+
+/* --- CARTES (CARDS) --- */
+.card {
+    background: var(--white);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.login-card { width: 90%; max-width: 350px; text-align: center; }
+
+/* --- FORMULAIRES --- */
+.form-input {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box; /* Crucial pour mobile */
+    font-size: 16px; /* Évite le zoom auto sur iPhone */
+}
+
+.btn-primary, .btn-secondary {
+    display: inline-block;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.btn-primary { background-color: var(--primary); color: white;  margin-top: 10px; }
+.btn-primary:active { background-color: var(--primary-dark); }
+
+.btn-secondary { background-color: var(--dark); color: white; margin-top: 10px; width: 95%;}
+
+/* --- TEXTE --- */
+h1, h2, h3 { margin-top: 0; color: var(--dark); }
+.subtitle { color: #7f8c8d; margin-bottom: 25px; }
+.error-msg { color: var(--error); margin-top: 10px; font-weight: bold; }
+
+/* --- GRILLE ET TABLEAU --- */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.table-container { margin: 20px 0; border-radius: 8px; overflow: hidden; }
+
+/* --- RESPONSIVE MOBILE --- */
+@media (max-width: 600px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .content-container { padding: 10px; }
+    .card { padding: 15px; }
+}
+
+/* Barre de navigation principale */
+.navbar {
+    display: flex;
+    justify-content: space-between; /* Sépare les liens du bouton déconnexion */
+    align-items: center;
+    background-color: #2c3e50;
+    padding: 10px 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-family: sans-serif;
+}
+
+/* Conteneur des liens de navigation */
+.nav-main-links {
+    display: flex;
+    gap: 15px; /* Espace uniforme entre les boutons */
+}
+
+/* Style des liens (Cibles tactiles) */
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 12px 18px; /* Zone de clic agrandie pour le pouce */
+    border-radius: 8px;
+    background-color: #34495e;
+    font-weight: 500;
+    transition: background 0.3s;
+    text-align: center;
+}
+
+/* Feedback visuel au toucher/clic */
+.nav-link:active {
+    background-color: #1abc9c;
+    transform: scale(0.95);
+}
+
+/* Bouton déconnexion spécifique */
+.logout-btn {
+    background-color: #e74c3c; /* Rouge pour l'action de sortie */
+    font-size: 0.9em;
+}
+
+/* Optimisation pour les petits écrans (très petits téléphones) */
+@media (max-width: 400px) {
+    .navbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .nav-main-links {
+        width: 100%;
+        justify-content: center;
+    }
+    .nav-link {
+        flex: 1; /* Les boutons prennent toute la largeur disponible */
+        padding: 15px 5px;
+        font-size: 0.85em;
+    }
+}
+
+/* --- STYLE SPÉCIFIQUE POUR TEXTAREA --- */
+
+.text-area-custom {
+    min-height: 120px; /* Donne assez d'espace pour plusieurs lignes */
+    resize: vertical;  /* Empêche l'utilisateur de casser le design horizontalement sur mobile */
+    line-height: 1.5;  /* Meilleure lisibilité du texte long */
+    font-family: inherit; /* Utilise la même police que le reste de l'app */
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Effet focus pour savoir quel champ est actif au toucher */
+.text-area-custom:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+}
+
+/* Ajustement pour les très petits écrans */
+@media (max-width: 400px) {
+    .text-area-custom {
+        min-height: 100px;
+        padding: 12px;
+    }
+}

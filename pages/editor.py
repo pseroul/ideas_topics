@@ -11,13 +11,14 @@ layout = dbc.Container([
     dbc.Card([
         dbc.CardHeader("Data"),
         dbc.CardBody([
-            dcc.Input(id="input-data-name", type="text", placeholder="Data name", className="mb-2"),
-            dbc.Button("add", id="button-add-data", color="primary"),
-            dbc.Button("remove", id="button-remove-data", color="primary"),
-            dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="mb-2"),
-            dbc.Button("update", id="button-update-data", color="primary"),
+            dcc.Input(id="input-data-name", type="text", placeholder="Data name", className="form-input"),
+            html.Button("add", id="button-add-data", className="btn-primary"),
+            html.Button("remove", id="button-remove-data", className="btn-primary"),
+            dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="form-input text-area-custom"),
+            html.Button("update", id="button-update-data", className="btn-primary"),
             dash_table.DataTable(
                 id="table-data",
+                style_table={'overflowX': 'auto'},
                 columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
                 data=[],
                 style_cell={'textAlign': 'left'},
@@ -25,20 +26,21 @@ layout = dbc.Container([
             html.Div(id='data-tags', children=[])
             
         ])
-    ], className="mb-4"),
+    ], className="content-container"),
 
     # add tag
     dbc.Card([
         dbc.CardHeader("Tags"),
         dbc.CardBody([
-            dcc.Input(id="input-tag-name", type="text", placeholder="Tag name", className="mb-2"),
-            dbc.Button("add", id="button-add-tag", color="primary"),
-            dbc.Button("remove", id="button-remove-tag", color="primary"),
+            dcc.Input(id="input-tag-name", type="text", placeholder="Tag name", className="form-input"),
+            html.Button("add", id="button-add-tag", className="btn-primary"),
+            html.Button("remove", id="button-remove-tag", className="btn-primary"),
             dash_table.DataTable(
                 id="table-tags",
+                style_table={'overflowX': 'auto'},
                 columns=[{"name": "Nom", "id": "name"}],
                 data=[],
-                page_size=10,
+                page_size=10
             )
         ])
     ], className="mb-4"),
@@ -49,17 +51,18 @@ layout = dbc.Container([
         dbc.CardBody([
             dcc.Dropdown(id="dropdown-data", placeholder="Select data", className="mb-2"),
             dcc.Dropdown(id="dropdown-tag", placeholder="Select tag", className="mb-2"),
-            dbc.Button("add", id="button-add-relation", color="primary"),
-            dbc.Button("remove", id="button-remove-relation", color="primary"),
+            html.Button("add", id="button-add-relation", className="btn-primary"),
+            html.Button("remove", id="button-remove-relation", className="btn-primary"),
             dash_table.DataTable(
                 id="table-relations",
+                style_table={'overflowX': 'auto'},
                 columns=[{"name": "Data", "id": "data_name"}, {"name": "Tag", "id": "tag_name"}],
                 data=[],
-                page_size=10,
+                page_size=10
             )
         ])
     ]),
-])
+], className="card content-container")
 
 
 @callback(
