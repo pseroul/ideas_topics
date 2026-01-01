@@ -20,6 +20,7 @@ layout = dbc.Container([
                 id="table-data",
                 columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
                 data=[],
+                style_cell={'textAlign': 'left'},
                 page_size=10),
             html.Div(id='data-tags', children=[])
             
@@ -88,10 +89,16 @@ def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str)
 def callback_data_cell(active_cell, table_data) -> tuple[str, str, str]: 
     if active_cell is None:
         return "", "", ""
-    row_data = table_data[active_cell['row']]
-    taglist = data_handler.get_tags_from_data(row_data['name'])
+
+    name: str = active_cell['row_id']
+    description: str = ""
+    for row in table_data:
+        if row.get('id') == name:
+            description = row['description']
+    # selected_row = row for row in table_data if row.get('id') == name
+    taglist = data_handler.get_tags_from_data(name)
     tags: str = "tags: " + ";".join(taglist)
-    return row_data['name'], row_data['description'], tags
+    return name, description, tags
 
 @callback(
     Output("table-tags", "data"),

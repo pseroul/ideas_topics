@@ -50,7 +50,6 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, Any]]:
     return df.to_dict("records")
 
 def get_tags_from_data(data: str):
-    print("get_tags_from_data: ", data)
     if not data:
         return get_tags()
     else:
@@ -63,6 +62,7 @@ def get_tags_from_data(data: str):
 def get_data() -> list[dict[Hashable, Any]]:
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data", conn)
+    df['id'] = df['name']
     conn.close()
     return df.to_dict("records")
 
