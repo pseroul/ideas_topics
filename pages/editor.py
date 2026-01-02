@@ -12,8 +12,8 @@ layout = dbc.Container([
         dbc.CardHeader("Data"),
         dbc.CardBody([
             dcc.Input(id="input-data-name", type="text", placeholder="Data name", className="form-input"),
-            html.Button("add", id="button-add-data", className="btn-primary"),
-            html.Button("remove", id="button-remove-data", className="btn-primary"),
+            html.Div([html.Button("add", id="button-add-data", className="btn-primary"),
+                     html.Button("remove", id="button-remove-data", className="btn-danger")], className="button-row"),
             dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="form-input text-area-custom"),
             html.Button("update", id="button-update-data", className="btn-primary"),
             dash_table.DataTable(
@@ -33,8 +33,8 @@ layout = dbc.Container([
         dbc.CardHeader("Tags"),
         dbc.CardBody([
             dcc.Input(id="input-tag-name", type="text", placeholder="Tag name", className="form-input"),
-            html.Button("add", id="button-add-tag", className="btn-primary"),
-            html.Button("remove", id="button-remove-tag", className="btn-primary"),
+            html.Div([html.Button("add", id="button-add-tag", className="btn-primary"),
+                      html.Button("remove", id="button-remove-tag", className="btn-danger")], className="button-row"),
             dash_table.DataTable(
                 id="table-tags",
                 style_table={'overflowX': 'auto'},
@@ -51,8 +51,8 @@ layout = dbc.Container([
         dbc.CardBody([
             dcc.Dropdown(id="dropdown-data", placeholder="Select data", className="mb-2"),
             dcc.Dropdown(id="dropdown-tag", placeholder="Select tag", className="mb-2"),
-            html.Button("add", id="button-add-relation", className="btn-primary"),
-            html.Button("remove", id="button-remove-relation", className="btn-primary"),
+            html.Div([html.Button("add", id="button-add-relation", className="btn-primary"),
+            html.Button("remove", id="button-remove-relation", className="btn-danger")], className="button-row"),
             dash_table.DataTable(
                 id="table-relations",
                 style_table={'overflowX': 'auto'},

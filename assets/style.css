@@ -45,7 +45,7 @@ body {
 
 .btn-primary, .btn-secondary {
     display: inline-block;
-    width: 100%;
+    /*width: 100%;*/
     padding: 15px;
     border: none;
     border-radius: 8px;
@@ -60,7 +60,7 @@ body {
 .btn-primary { background-color: var(--primary); color: white;  margin-top: 10px; }
 .btn-primary:active { background-color: var(--primary-dark); }
 
-.btn-secondary { background-color: var(--dark); color: white; margin-top: 10px; width: 95%;}
+.btn-secondary { background-color: var(--dark); color: white; margin-top: 10px; width: 100%;box-sizing: border-box;}
 
 /* --- TEXTE --- */
 h1, h2, h3 { margin-top: 0; color: var(--dark); }
@@ -139,6 +139,57 @@ h1, h2, h3 { margin-top: 0; color: var(--dark); }
         padding: 15px 5px;
         font-size: 0.85em;
     }
+}
+
+/* --- ALIGNEMENT DES BOUTONS EN LIGNE --- */
+
+.button-row {
+    display: flex;       /* Active Flexbox */
+    flex-direction: row; /* Aligne les enfants horizontalement */
+    gap: 12px;           /* Espace entre les deux boutons */
+    margin-top: 20px;
+    width: 100%;
+}
+
+.button-row .btn-primary, 
+.button-row .btn-danger {
+    flex: 1;             /* Force les deux boutons à avoir la même largeur */
+    margin: 0;           /* Supprime les marges par défaut */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;        /* Hauteur confortable pour le tactile */
+}
+
+/* Style spécifique pour le bouton Supprimer */
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.btn-danger:active {
+    background-color: #c0392b;
+    transform: scale(0.98);
+}
+
+/* --- ALIGNEMENT VERTICAL DU FORMULAIRE --- */
+
+.form-stack {
+    display: flex;
+    flex-direction: column; /* Force l'empilement vertical */
+    gap: 15px;             /* Crée un espace uniforme entre chaque élément */
+    width: 100%;           /* Prend toute la largeur de la carte */
+}
+
+/* On s'assure que les inputs et le bouton prennent toute la largeur */
+.form-input, .btn-primary {
+    width: 100% !important;
+    box-sizing: border-box;
 }
 
 /* --- STYLE SPÉCIFIQUE POUR TEXTAREA --- */

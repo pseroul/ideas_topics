@@ -28,7 +28,7 @@ def load_user(user_id):
     return User(user_id) if user_id == authenticator.get_user()[0] else None
 
 # --- APP DASH ---
-app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
+app = dash.Dash(__name__, title= "Pierre Seroul", server=server, suppress_callback_exceptions=True)
 
 # Layout de base
 app.layout = html.Div([
@@ -56,12 +56,18 @@ home_layout = html.Div([
 ])
 
 login_layout = html.Div([
-    html.H2("Secured Connection"),
-    dcc.Input(id='email', type='text', placeholder='Email', className="form-input"),
-    dcc.Input(id='pwd', type='password', placeholder='Password', className="form-input"),
-    dcc.Input(id='otp', type='text', placeholder='Code Google Authenticator (6 digits)', className="form-input"),
-    html.Button('Connect', id='login-button', n_clicks=0, className="btn-primary"),
-    html.Div(id='login-error', className="error-msg")
+    html.Div([
+        html.H2("Secured Access"),
+        html.P("Identify yourself to access", className="subtitle"),
+        html.Div([
+            dcc.Input(id='email', type='text', placeholder='Email', className="form-input"),
+            dcc.Input(id='pwd', type='password', placeholder='Mot de passe', className="form-input"),
+            dcc.Input(id='otp', type='text', placeholder='Code Google Auth', className="form-input"),
+            html.Button('Connect', id='login-button', n_clicks=0, className="btn-primary"),
+        ], className="form-stack"), 
+        
+        html.Div(id='login-error', className="error-msg")
+    ], className="card login-card")
 ], className="page-wrapper center-content")
 
 
@@ -71,7 +77,7 @@ def navbar():
         dcc.Link('Home', href='/home', className="nav-link"),
         dcc.Link('Add ideas', href='/edit', className="nav-link"),
         dcc.Link('Vizualisation', href='/viz', className="nav-link"),
-        html.A('Sign out', href='/logout', className="nav-link logout")
+        html.A('Sign out', href='/logout', className="nav-link logout-btn")
     ], className="navbar")
 
 app.layout = html.Div([
@@ -80,8 +86,7 @@ app.layout = html.Div([
     html.Div(id='page-content', className="container")
 ])
 
-# --- CALLBACKS DE NAVIGATION ---
-# Router principal
+
 @app.callback(
     [Output('page-content', 'children'), Output('navbar-container', 'children')],
     [Input('url', 'pathname')]
@@ -95,7 +100,7 @@ def display_page(pathname: str):
     if pathname == '/viz': return viewer.layout, nav
     return home_layout, nav 
 
-# Logique de vérification Login + OTP
+
 @app.callback(
     [Output('url', 'pathname'), Output('login-error', 'children')],
     [Input('login-button', 'n_clicks')],
@@ -117,7 +122,7 @@ def auth_login(n_clicks, email: str, pwd: str, otp: str):
         return dash.no_update, "Identifiants incorrects"
     return dash.no_update, ""
 
-# Route Flask pour la déconnexion
+
 @server.route('/logout')
 def logout():
     logout_user()
