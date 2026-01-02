@@ -29,6 +29,29 @@ def load_user(user_id):
 
 # --- APP DASH ---
 app = dash.Dash(__name__, title= "Pierre Seroul", server=server, suppress_callback_exceptions=True)
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <link rel="manifest" href="/assets/manifest.json">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#2c3e50">
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
 
 # Layout de base
 app.layout = html.Div([
