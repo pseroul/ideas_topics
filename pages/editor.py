@@ -16,15 +16,17 @@ layout = dbc.Container([
                      html.Button("remove", id="button-remove-data", className="btn-danger")], className="button-row"),
             dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="form-input text-area-custom"),
             html.Button("update", id="button-update-data", className="btn-primary"),
+            dcc.Dropdown(id="dropdown-tag", placeholder="Select tag", className="mb-2"),
+            html.Div(id='data-tags', children=[]),
+            html.Div([html.Button("add tag", id="button-add-relation", className="btn-primary"),
+            html.Button("remove tag", id="button-remove-relation", className="btn-danger")], className="button-row"),
             dash_table.DataTable(
                 id="table-data",
                 style_table={'overflowX': 'auto'},
                 columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
                 data=[],
                 style_cell={'textAlign': 'left'},
-                page_size=10),
-            html.Div(id='data-tags', children=[])
-            
+                page_size=10)
         ])
     ], className="content-container"),
 
@@ -43,25 +45,8 @@ layout = dbc.Container([
                 page_size=10
             )
         ])
-    ], className="mb-4"),
+    ], className="mb-4")
 
-    # add relation
-    dbc.Card([
-        dbc.CardHeader("Relations"),
-        dbc.CardBody([
-            dcc.Dropdown(id="dropdown-data", placeholder="Select data", className="mb-2"),
-            dcc.Dropdown(id="dropdown-tag", placeholder="Select tag", className="mb-2"),
-            html.Div([html.Button("add", id="button-add-relation", className="btn-primary"),
-            html.Button("remove", id="button-remove-relation", className="btn-danger")], className="button-row"),
-            dash_table.DataTable(
-                id="table-relations",
-                style_table={'overflowX': 'auto'},
-                columns=[{"name": "Data", "id": "data_name"}, {"name": "Tag", "id": "tag_name"}],
-                data=[],
-                page_size=10
-            )
-        ])
-    ]),
 ], className="card content-container")
 
 
@@ -75,7 +60,7 @@ layout = dbc.Container([
 )
 def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str) -> list[dict[Hashable, Any]]:
     if ctx.triggered_id == "button-add-data" and name and description:
-        data_handler.add_data(name, description)
+        data_handler.add_data(name.strip(), description)
     elif ctx.triggered_id == "button-remove-data" and name:
         data_handler.remove_data(name)
     elif ctx.triggered_id == "button-update-data" and name:
@@ -104,6 +89,23 @@ def callback_data_cell(active_cell, table_data) -> tuple[str, str, str]:
     return name, description, tags
 
 @callback(
+    Output("data-tags", "children", allow_duplicate=True),
+    Input("button-add-relation", "n_clicks"),
+    Input("button-remove-relation", "n_clicks"),
+    State("input-data-name", "value"),
+    State("dropdown-tag", "value"),
+    prevent_initial_call=True
+)
+def callback_relation(add_clicks, rm_clicks, data_name: str, tag_name: str) -> list[dict[Hashable, Any]]:
+    if ctx.triggered_id == "button-add-relation" and data_name and tag_name:
+        data_handler.add_relation(data_name, tag_name)
+    elif ctx.triggered_id == "button-remoce-relation" and data_name and tag_name: 
+        data_handler.remove_relation(data_name, tag_name)
+    taglist = data_handler.get_tags_from_data(data_name)
+    tags: str = "tags: " + ";".join(taglist)
+    return tags
+
+@callback(
     Output("table-tags", "data"),
     Input("button-add-tag", "n_clicks"),
     Input("button-remove-tag", "n_clicks"),
@@ -111,39 +113,16 @@ def callback_data_cell(active_cell, table_data) -> tuple[str, str, str]:
 )
 def callback_tag(add_clicks, rm_clicks, name: str) -> list[dict[Hashable, Any]]:
     if ctx.triggered_id == "button-add-tag" and name:
-        data_handler.add_tag(name)
+        data_handler.add_tag(name.strip())
     elif ctx.triggered_id == "button-remove-tag" and name:
         data_handler.remove_tag(name)
     return data_handler.get_tags()
-
-
-@callback(
-    Output("table-relations", "data"),
-    Input("button-add-relation", "n_clicks"),
-    Input("button-remove-relation", "n_clicks"),
-    State("dropdown-data", "value"),
-    State("dropdown-tag", "value")
-)
-def callback_add_relation(add_clicks, rm_clicks, data_name: str, tag_name: str) -> list[dict[Hashable, Any]]:
-    if ctx.triggered_id == "button-add-relation" and data_name and tag_name:
-        data_handler.add_relation(data_name, tag_name)
-    elif ctx.triggered_id == "button-remoce-relation" and data_name and tag_name: 
-        data_handler.remove_relation(data_name, tag_name)
-    return data_handler.get_relations()
-
-
-@callback(
-    Output("dropdown-data", "options"),
-    Input("table-data", "data")
-)
-def update_dropdown_datas(data):
-    return [{"label": d["name"], "value": d["name"]} for d in data]
 
 @callback(
     Output("dropdown-tag", "options"),
     Input("table-tags", "data")
 )
-def update_dropdown_tags(data):
-    return [{"label": t["name"], "value": t["name"]} for t in data]
+def update_dropdown_tags(tags: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [{"label": t["name"], "value": t["name"]} for t in tags]
 
 

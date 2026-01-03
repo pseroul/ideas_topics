@@ -153,4 +153,4 @@ def logout():
 
 if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    app.run()
+    app.run(debug=True)
