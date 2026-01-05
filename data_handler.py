@@ -6,7 +6,6 @@ from config import NAME_DB
 
 
 def init_database() -> None:
-    print("init_database")
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
 
@@ -81,6 +80,14 @@ def get_tags_from_data(data: str):
         conn.close()
     return df['tag_name'].to_list()
 
+def get_similar_data(data: str) -> None:
+    conn = sqlite3.connect(NAME_DB)
+    query = "SELECT name, description FROM data WHERE name = (?)"
+    df = pd.read_sql_query(query, conn, params=[data])
+    embedding = Embeddings()
+    results = embedding.get_similar_data(df['name'], df['description'])
+    conn.close()
+    return results
 
 # ADD FUNCTIONS
 def add_data(name: str, description: str) -> None:
@@ -126,7 +133,7 @@ def add_relation(data_name: str, tag_name: str) -> None:
         conn.commit()
         print(f"Relation between '{data_name}' and '{tag_name}'  added successfully.")
     except sqlite3.IntegrityError:
-        print(f"Erreur : This relation already exists or foreign keys are unvalid.")
+        print(f"Error : This relation already exists or foreign keys are unvalid.")
     finally:
         conn.close()
 
@@ -194,7 +201,7 @@ def update_data(name: str, description: str) -> None:
         embedding.update_data(name, description)
         print(f"data '{name}'  updated successfully.")
     except sqlite3.IntegrityError:
-        print(f"Errr : data '{name}' can't be updated.")
+        print(f"Error : data '{name}' can't be updated.")
     finally:
         conn.close()
 

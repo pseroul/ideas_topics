@@ -59,7 +59,6 @@ layout = dbc.Container([
     State("input-data-description", "value")
 )
 def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str) -> list[dict[Hashable, Any]]:
-    print('callback data')
     if ctx.triggered_id == "button-add-data" and name and description:
         data_handler.add_data(name.strip(), description)
     elif ctx.triggered_id == "button-remove-data" and name:

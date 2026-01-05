@@ -43,18 +43,28 @@ layout = html.Div([
             }
         ]
     ),
-    html.Div(id='node-info')
+    html.Div(id='node-info'),
+    dash_table.DataTable(
+        id="table-viz-data",
+        style_table={'overflowX': 'auto'},
+        columns=[{"name": "Name", "id": "name"}, {"name": "Description", "id": "description"}],
+        data=[],
+        style_cell={'textAlign': 'left'},
+        page_size=10)
 ], className="content-container")
 
 @callback(
     Output('cytoscape-graph', 'elements'),
+    Output('table-viz-data', 'data'),
     Input('btn-submit', 'n_clicks'),
     State('input-name', 'value')
 )
 def update_graph(n_clicks, input_value):
     if n_clicks > 0 and input_value:
-        return get_network_recursive(input_value)
-    return []
+        graph = get_network_recursive(input_value)
+        k_nearest = data_handler.get_similar_data(input_value)
+        return graph, k_nearest
+    return [], []
 
 @callback(
     Output('node-info', 'children'),

@@ -13,6 +13,9 @@ class Embeddings:
         
     def _format_text(self, name: str, description: str) -> str:
         return f"{name}. {name}: {description}"
+    
+    def _unformat_text(self, name: str, description: str) -> str:
+        return description.replace(f"{name}. {name}:", "")
 
     def insert_data(self, name: str, description: str) -> None:
         self.collection.add(documents=[self._format_text(name, description)], 
@@ -27,11 +30,12 @@ class Embeddings:
     def remove_data(self, name: str): 
         self.collection.delete(ids=[name])
         
-    def get_similar_data(self, name: str, description: str, n_results: int=10):
+    def get_similar_data(self, name: str, description: str, n_results: int=10) -> list[dict[str, str]]:
         results = self.collection.query(
             query_texts=[self._format_text(name, description)], 
             n_results = n_results)
-        print(results)
-        return results
+        names: list[str] = results["ids"][0]
+        descriptions = results['documents'][0]
+        return [{'name': name, 'description': self._unformat_text(name, desc)} for name, desc in zip(names, descriptions)]
 
     
