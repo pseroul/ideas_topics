@@ -3,17 +3,20 @@ import dash
 import authenticator
 from pages import editor, viewer
 from data_handler import init_database
-from dash import html, dcc, Input, Output, State, Dash
+from dash import html, dcc, Input, Output, State
 import flask
-import dash_bootstrap_components as dbc
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
+from datetime import timedelta
 import pyotp
 
 init_database()
 
 # --- CONFIGURATION ---
 server = flask.Flask(__name__)
-server.secret_key = 'remplacez_ceci par_une_cl3_tres_secrete'
+server.config.update(
+    SECRET_KEY=authenticator.get_server_secret_key(),
+    REMEMBER_COOKIE_DURATION=timedelta(days=30)
+)
 
 # --- FLASK LOGIN ---
 login_manager = LoginManager()
@@ -86,6 +89,7 @@ login_layout = html.Div([
             dcc.Input(id='email', type='text', placeholder='Email', className="form-input"),
             dcc.Input(id='pwd', type='password', placeholder='Mot de passe', className="form-input"),
             dcc.Input(id='otp', type='text', placeholder='Code Google Auth', className="form-input"),
+            dcc.Checklist(id='remember-me', options=[{'label': 'Remember me', 'value': 'remember'}], value=[]),
             html.Button('Connect', id='login-button', n_clicks=0, className="btn-primary"),
         ], className="form-stack"), 
         
@@ -127,17 +131,23 @@ def display_page(pathname: str):
 @app.callback(
     [Output('url', 'pathname'), Output('login-error', 'children')],
     [Input('login-button', 'n_clicks')],
-    [State('email', 'value'), State('pwd', 'value'), State('otp', 'value')]
+    [State('email', 'value'),
+     State('pwd', 'value'),
+     State('otp', 'value'),
+     State('remember-me', 'remember')]
 )
-def auth_login(n_clicks, email: str, pwd: str, otp: str):
+def auth_login(n_clicks, email: str, pwd: str, otp: str, remember_checked: bool):
     if n_clicks > 0:
         user_email, user_pwd = authenticator.get_user()
         if email == user_email and pwd == user_pwd:
             # Vérification du code Google Authenticator
             totp = pyotp.TOTP(authenticator.get_otp_secret())
             if totp.verify(otp):
+                remember = False
+                if remember_checked:
+                    remember = True
                 print("auth successful")
-                login_user(User(email))
+                login_user(User(email), remember=remember)
                 return '/', ''
             else:
                 print("Code OTP invalide")
@@ -153,4 +163,4 @@ def logout():
 
 if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    app.run(debug=True)
+    app.run()

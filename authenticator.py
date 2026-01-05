@@ -21,6 +21,11 @@ def generate_auth_link(email: str, mdp: str, debug: bool) -> None:
 
     print(f"Pasted the following link in Qr.io to obtain a QR code : {totp.provisioning_uri(name=appname, issuer_name='ServerPi')}")
 
+def get_server_secret_key() -> str:
+    with open("data/server.json", "r") as f:
+        user = json.load(f)
+    return user['secret_key']
+
 def get_user() -> tuple[str, str]:
     with open("data/users.json", "r") as f:
         user = json.load(f)

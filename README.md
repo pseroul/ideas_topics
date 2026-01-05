@@ -18,6 +18,14 @@ python authenticator.py <email> <password> (--debug)
 This will print a link that you can passed to Qr.io to generate a QR Code or directly paste in your Google Authenticator app.
 You can use the optional *--debug* argument To create a debug Auth. It helps if you want to have one auth for your production environment and another one for debug purpose.
 
+### Generate server secret key
+Create a file called ```data/server.json``` and fill it with this model (change the secret_key):`
+```
+{
+    "secret_key" : "my_very_secret_server_key"
+}
+```
+
 
 ### Run the server in debug mode (local)
 ```
