@@ -54,17 +54,20 @@ layout = dbc.Container([
     Output("table-data", "data"),
     [Input("button-add-data", "n_clicks"),
     Input("button-remove-data", "n_clicks"),
-    Input("button-update-data", "n_clicks")],
-    [State("input-data-name", "value"),
-    State("input-data-description", "value")]
+    Input("button-update-data", "n_clicks"), 
+    Input("input-data-name", "value")],
+    State("input-data-description", "value")
 )
 def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str) -> list[dict[Hashable, Any]]:
+    print('callback data')
     if ctx.triggered_id == "button-add-data" and name and description:
         data_handler.add_data(name.strip(), description)
     elif ctx.triggered_id == "button-remove-data" and name:
         data_handler.remove_data(name)
     elif ctx.triggered_id == "button-update-data" and name:
         data_handler.update_data(name, description)
+    elif ctx.triggered_id == "input-data-name" and name:
+        return data_handler.get_selected_data(name)
     return data_handler.get_data()
 
 @callback(

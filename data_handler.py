@@ -30,7 +30,7 @@ def init_database() -> None:
     conn.commit()
     conn.close()
 
-def get_data_from_tags(tags: str) -> list[dict[Hashable, Any]]:
+def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
     if not tags:
         return get_data()
     else:
@@ -61,6 +61,15 @@ def get_tags_from_data(data: str):
 def get_data() -> list[dict[Hashable, Any]]:
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data", conn)
+    df['id'] = df['name']
+    conn.close()
+    return df.to_dict("records")
+
+def get_selected_data(subname: str) -> list[dict[Hashable, Any]]:
+    print('get_selected_data:', subname)
+    subname = "%" + subname + "%"
+    conn = sqlite3.connect(NAME_DB)
+    df = pd.read_sql_query("SELECT * FROM data WHERE name LIKE (?)", conn, params=[subname])
     df['id'] = df['name']
     conn.close()
     return df.to_dict("records")
