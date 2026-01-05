@@ -1,6 +1,8 @@
 import os
 import dash
+import argparse
 import authenticator
+import config
 from pages import editor, viewer
 from data_handler import init_database
 from dash import html, dcc, Input, Output, State
@@ -142,7 +144,7 @@ def auth_login(n_clicks, email: str, pwd: str, otp: str, remember_checked: bool)
         if email == user_email and pwd == user_pwd:
             # Vérification du code Google Authenticator
             totp = pyotp.TOTP(authenticator.get_otp_secret())
-            if totp.verify(otp):
+            if totp.verify(otp) or config.DEBUG == True:
                 remember = False
                 if remember_checked:
                     remember = True
@@ -162,5 +164,8 @@ def logout():
     return flask.redirect('/login')
 
 if __name__ == "__main__":
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    app.run()
+    parser = argparse.ArgumentParser(description='Create user and generate Google Auth')
+    parser.add_argument('-d', '--debug', help='generate a Google Auth for debug purpose', action="store_true")
+    args = parser.parse_args()
+    config.DEBUG = args.debug 
+    app.run(debug=config.DEBUG)

@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Any, Hashable
 import pandas as pd
+from data_similarity import Embeddings
 from config import NAME_DB
 
 
@@ -30,6 +31,7 @@ def init_database() -> None:
     conn.commit()
     conn.close()
 
+# GET DATA OR TAGS
 def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
     if not tags:
         return get_data()
@@ -48,16 +50,6 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
         conn.close()
     return df.to_dict("records")
 
-def get_tags_from_data(data: str):
-    if not data:
-        return get_tags()
-    else:
-        conn = sqlite3.connect(NAME_DB)
-        query = "SELECT tag_name FROM relation WHERE data_name = (?)"
-        df = pd.read_sql_query(query, conn, params=[data])
-        conn.close()
-    return df['tag_name'].to_list()
-
 def get_data() -> list[dict[Hashable, Any]]:
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data", conn)
@@ -66,7 +58,6 @@ def get_data() -> list[dict[Hashable, Any]]:
     return df.to_dict("records")
 
 def get_selected_data(subname: str) -> list[dict[Hashable, Any]]:
-    print('get_selected_data:', subname)
     subname = "%" + subname + "%"
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data WHERE name LIKE (?)", conn, params=[subname])
@@ -80,12 +71,18 @@ def get_tags() -> list[dict[Hashable, Any]]:
     conn.close()
     return df.to_dict("records")
 
-def get_relations() -> list[dict[Hashable, Any]]:
-    conn = sqlite3.connect(NAME_DB)
-    df = pd.read_sql_query("SELECT * FROM relation", conn)
-    conn.close()
-    return df.to_dict("records")
+def get_tags_from_data(data: str):
+    if not data:
+        return get_tags()
+    else:
+        conn = sqlite3.connect(NAME_DB)
+        query = "SELECT tag_name FROM relation WHERE data_name = (?)"
+        df = pd.read_sql_query(query, conn, params=[data])
+        conn.close()
+    return df['tag_name'].to_list()
 
+
+# ADD FUNCTIONS
 def add_data(name: str, description: str) -> None:
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
@@ -95,6 +92,8 @@ def add_data(name: str, description: str) -> None:
             (name, description)
         )
         conn.commit()
+        embedding = Embeddings()
+        embedding.insert_data(name, description)
         print(f"data '{name}'  added successfully.")
     except sqlite3.IntegrityError:
         print(f"Errr : data '{name}' already exists.")
@@ -131,7 +130,7 @@ def add_relation(data_name: str, tag_name: str) -> None:
     finally:
         conn.close()
 
-# Fonctions de suppression
+# REMOVE FUNCTIONS
 def remove_data(name: str) -> None:
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
@@ -141,6 +140,8 @@ def remove_data(name: str) -> None:
             (name,)
         )
         conn.commit()
+        embedding = Embeddings()
+        embedding.remove_data(name)
         print(f"data '{name}' removed successfully.")
     except sqlite3.Error as e:
         print(f"Error deleting data : {e}")
@@ -171,12 +172,15 @@ def remove_relation(data_name: str, tag_name: str) -> None:
             (data_name, tag_name)
         )
         conn.commit()
+        
         print(f"Relation between '{data_name}' and '{tag_name}' removed successfully.")
     except sqlite3.Error as e:
         print(f"Error when deleting relation : {e}")
     finally:
         conn.close()
 
+
+# UPDATE FUNCTIONS
 def update_data(name: str, description: str) -> None:
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
@@ -186,9 +190,18 @@ def update_data(name: str, description: str) -> None:
             (description, name)
         )
         conn.commit()
+        embedding = Embeddings()
+        embedding.update_data(name, description)
         print(f"data '{name}'  updated successfully.")
     except sqlite3.IntegrityError:
         print(f"Errr : data '{name}' can't be updated.")
     finally:
         conn.close()
 
+def embed_all_data() -> None:
+    conn = sqlite3.connect(NAME_DB)    
+    df = pd.read_sql_query("SELECT * FROM data", conn)
+    embedding = Embeddings()
+    for _, row in df.iterrows():
+        embedding.insert_data(row['name'], row['description'])
+    conn.close()

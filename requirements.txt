@@ -6,3 +6,4 @@ flask-login
 pyotp
 qrcode
 gunicorn
+chromadb
