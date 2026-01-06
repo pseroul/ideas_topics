@@ -64,10 +64,8 @@ def callback_data(add_clicks, rm_clicks, up_clicks, name: str, description: str)
     elif ctx.triggered_id == "button-remove-data" and name:
         data_handler.remove_data(name)
     elif ctx.triggered_id == "button-update-data" and name:
-        data_handler.update_data(name, description)
-    elif ctx.triggered_id == "input-data-name" and name:
-        return data_handler.get_selected_data(name)
-    return data_handler.get_data()
+        data_handler.update_data(name, description)    
+    return data_handler.get_selected_data(name)
 
 @callback(
     Output("input-data-name", "value"), 
