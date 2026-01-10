@@ -31,6 +31,8 @@ class Embeddings:
         self.collection.delete(ids=[name])
         
     def get_similar_data(self, name: str, description: str, n_results: int=10) -> list[dict[str, str]]:
+        if n_results == 0:
+            return []
         results = self.collection.query(
             query_texts=[self._format_text(name, description)], 
             n_results = n_results)

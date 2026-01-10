@@ -1,12 +1,12 @@
 
 import sqlite3
-from typing import Any, Hashable
+from typing import Any
 import pandas as pd
-import data_handler
+from data_similarity import Embeddings
 from config import NAME_DB
 
 
-def get_network_recursive(start_node: str, max_depth=3):# -> list[Any]:
+def get_network_recursive(start_node: str, max_depth: int=2) -> list[dict[str, Any]]:
     """
     Recursive parsing of data
     """
@@ -21,15 +21,21 @@ def get_network_recursive(start_node: str, max_depth=3):# -> list[Any]:
         visited.add(current_node)
         
         # Looking for links between data and tags
-        query = "SELECT data_name, tag_name FROM relation WHERE data_name = ? OR tag_name = ?"
-        df_links = pd.read_sql(query, conn, params=(current_node, current_node))
+        # query = "SELECT data_name, tag_name FROM relation WHERE data_name = ? OR tag_name = ?"
+        # df_links = pd.read_sql(query, conn, params=(current_node, current_node))
+        query = "SELECT description FROM data WHERE name = (?)"
+        description = pd.read_sql(query, conn, params=[current_node])
+        embedding = Embeddings()
+        similar_data = embedding.get_similar_data(current_node, description.iloc[0], n_results=int(8/(depth+1)))
         
-        for _, row in df_links.iterrows():
-            neighbor = row['tag_name'] if row['data_name'] == current_node else row['data_name']
+        for sd in similar_data:
+            neighbor = sd['name']
+            if neighbor == current_node:
+                continue
             
             # Ajout du lien pour Cytoscape
             edges.append({
-                'data': {'source': row['data_name'], 'target': row['tag_name']}
+                'data': {'source': current_node, 'target': neighbor}
             })
             
             nodes.add(current_node)

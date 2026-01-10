@@ -13,11 +13,11 @@ layout = dbc.Container([
         dbc.CardBody([
             dcc.Input(id="input-data-name", type="text", placeholder="Data name", className="form-input"),
             dcc.Textarea(id="input-data-description", placeholder="Description", style={"width": "100%"}, className="form-input text-area-custom"),
+            html.Div(id='data-tags', children=[]),
             html.Div([html.Button("add", id="button-add-data", className="btn-primary"),
                      html.Button("remove", id="button-remove-data", className="btn-danger")], className="button-row"),
             html.Button("update", id="button-update-data", className="btn-primary"),
             dcc.Dropdown(id="dropdown-tag", placeholder="Select tag", className="mb-2"),
-            html.Div(id='data-tags', children=[]),
             html.Div([html.Button("add tag", id="button-add-relation", className="btn-primary"),
             html.Button("remove tag", id="button-remove-relation", className="btn-danger")], className="button-row"),
             dash_table.DataTable(
