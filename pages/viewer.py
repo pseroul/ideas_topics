@@ -1,10 +1,10 @@
 import dash
 import data_handler
-import dash_bootstrap_components as dbc
 from typing import Any, Hashable
 from dash import dcc, html, Input, Output, State, dash_table, callback
 import dash_cytoscape as cyto
-from data_visualizer import get_network_recursive
+from data_visualizer import get_network_recursive, umap_all_data
+import plotly.express as px
 
 def get_all_inputs(): 
     data_name = data_handler.get_data()
@@ -14,7 +14,34 @@ def get_all_inputs():
     inputs += [{'label': tag['name'], 'value': tag['name']} for tag in tag_name]
     return inputs
 
+
+# fill combobox
 inputs = get_all_inputs()
+
+# Fill scatter plot containing all data
+data_projection = umap_all_data()
+fig = px.scatter(data_projection, x='x', y='y', hover_name='text', template="plotly_white")
+fig.update_layout(
+    margin=dict(l=10, r=10, t=40, b=10),
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=-0.3, 
+        xanchor="center",
+        x=0.5
+    ),
+    
+    font=dict(size=14),
+    
+    hovermode="closest",
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=16,
+        font_family="Rockwell"
+    )
+)
+
+fig.update_traces(marker=dict(size=12, line=dict(width=1, color='DarkSlateGrey')))
 
 default_cytoscape_stylesheet = [
     {
@@ -34,13 +61,24 @@ default_cytoscape_stylesheet = [
 layout = html.Div([
     html.H1("Idea explorer"),
     html.Div([
+        dcc.Graph(
+            id='embedding-graph',
+            figure=fig,
+            config={
+            'displayModeBar': False, # Hide the toolbar to save space
+            'scrollZoom': False
+            },
+            style={'height': '70vh', 'width': '100%'} # Use viewport height
+        )
+    ]),
+    html.Div([
         dcc.Dropdown(id='input-name', placeholder='Idea / Notes...', options=inputs),
         html.Button('Generate', id='btn-submit', n_clicks=0, className="btn-primary"),
     ]),
     
     cyto.Cytoscape(
         id='cytoscape-graph',
-        layout={'name': 'circle'}, 
+        layout={'name': 'cose'}, 
         style={'width': '100%', 'height': '600px'},
         elements=[],
         stylesheet=default_cytoscape_stylesheet
@@ -92,5 +130,4 @@ def display_node_data(data: dict[str, str], elements: dict[str, Any]) -> tuple[h
 
         return div, stylesheet, k_nearest
         
-
     return "Click on a node to see its description and its neighboors", default_cytoscape_stylesheet, []

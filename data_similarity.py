@@ -40,4 +40,5 @@ class Embeddings:
         descriptions = results['documents'][0]
         return [{'name': name, 'description': self._unformat_text(name, desc)} for name, desc in zip(names, descriptions)]
 
-    
+    def get_all_data(self) -> chromadb.GetResult:
+        return self.collection.get(include=['embeddings', 'documents'])

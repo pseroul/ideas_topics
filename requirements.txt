@@ -7,3 +7,4 @@ pyotp
 qrcode
 gunicorn
 chromadb
+umap-learn
