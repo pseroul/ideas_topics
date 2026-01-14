@@ -1,6 +1,6 @@
-import dash
+from plotly.graph_objs._figure import Figure
 import data_handler
-from typing import Any, Hashable
+from typing import Any
 from dash import dcc, html, Input, Output, State, dash_table, callback
 import dash_cytoscape as cyto
 from data_visualizer import get_network_recursive, umap_all_data
@@ -17,31 +17,6 @@ def get_all_inputs():
 
 # fill combobox
 inputs = get_all_inputs()
-
-# Fill scatter plot containing all data
-data_projection = umap_all_data()
-fig = px.scatter(data_projection, x='x', y='y', hover_name='text', template="plotly_white")
-fig.update_layout(
-    margin=dict(l=10, r=10, t=40, b=10),
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=-0.3, 
-        xanchor="center",
-        x=0.5
-    ),
-    
-    font=dict(size=14),
-    
-    hovermode="closest",
-    hoverlabel=dict(
-        bgcolor="white",
-        font_size=16,
-        font_family="Rockwell"
-    )
-)
-
-fig.update_traces(marker=dict(size=12, line=dict(width=1, color='DarkSlateGrey')))
 
 default_cytoscape_stylesheet = [
     {
@@ -63,7 +38,7 @@ layout = html.Div([
     html.Div([
         dcc.Graph(
             id='embedding-graph',
-            figure=fig,
+            figure=None,
             config={
             'displayModeBar': False, # Hide the toolbar to save space
             'scrollZoom': False
@@ -71,9 +46,10 @@ layout = html.Div([
             style={'height': '70vh', 'width': '100%'} # Use viewport height
         )
     ]),
+    html.Button("recompute", id="btn-recompute", className="btn-primary"),
     html.Div([
         dcc.Dropdown(id='input-name', placeholder='Idea / Notes...', options=inputs),
-        html.Button('Generate', id='btn-submit', n_clicks=0, className="btn-primary"),
+        html.Button('See connections', id='btn-submit', n_clicks=0, className="btn-primary"),
     ]),
     
     cyto.Cytoscape(
@@ -95,19 +71,20 @@ layout = html.Div([
 
 @callback(
     Output('cytoscape-graph', 'elements'),
+    Output('table-viz-data', 'data'),
     Input('btn-submit', 'n_clicks'),
     State('input-name', 'value')
 )
-def update_graph(n_clicks, input_value: str):
+def update_connection_graph(n_clicks: int, input_value: str):
     if n_clicks > 0 and input_value:
         graph = get_network_recursive(input_value)
-        return graph
-    return []
+        k_nearest = data_handler.get_similar_data(input_value)
+        return graph, k_nearest
+    return [], []
 
 @callback(
     Output('node-info', 'children'),
     Output('cytoscape-graph', 'stylesheet'),
-    Output('table-viz-data', 'data'),
     Input('cytoscape-graph', 'tapNodeData'),
     State('cytoscape-graph', 'elements')
 )
@@ -126,8 +103,36 @@ def display_node_data(data: dict[str, str], elements: dict[str, Any]) -> tuple[h
                     'style': {'line-color': '#FF851B', 'width': 4}})
 
         stylesheet = default_cytoscape_stylesheet + [selected_node_stylesheet] + selected_edge_stylesheet
-        k_nearest = data_handler.get_similar_data(data['label'])
-
-        return div, stylesheet, k_nearest
+        return div, stylesheet
         
-    return "Click on a node to see its description and its neighboors", default_cytoscape_stylesheet, []
+    return "Click on a node to see its description", default_cytoscape_stylesheet
+
+@callback(
+    Output('embedding-graph', 'figure'),
+    Input('btn-recompute', 'n_clicks')
+)
+def update_emb_projection(n_clicks: int) -> Figure:
+    data_projection = umap_all_data()
+    fig = px.scatter(data_projection, x='x', y='y', hover_name='text', template="plotly_white")
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=40, b=10),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3, 
+            xanchor="center",
+            x=0.5
+        ),
+        
+        font=dict(size=14),
+        
+        hovermode="closest",
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
+    )
+
+    fig.update_traces(marker=dict(size=12, line=dict(width=1, color='DarkSlateGrey')))
+    return fig

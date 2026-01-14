@@ -11,7 +11,6 @@ def get_network_recursive(start_node: str, max_depth: int=2) -> list[dict[str, A
     """
     Recursive parsing of data through tag connection.
     """
-    print("get_network_recursive")
     conn = sqlite3.connect(NAME_DB)
     nodes = set()
     edges = []

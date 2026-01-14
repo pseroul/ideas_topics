@@ -1,7 +1,6 @@
-import dash
 import data_handler
 import dash_bootstrap_components as dbc
-from typing import Any, Hashable, Literal
+from typing import Any, Hashable
 from dash import html, dcc, Input, Output, State, dash_table, callback, ctx
 
 layout = dbc.Container([
