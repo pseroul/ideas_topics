@@ -6,7 +6,6 @@ import umap
 from data_similarity import Embeddings
 from config import NAME_DB
 
-
 def get_network_recursive(start_node: str, max_depth: int=2) -> list[dict[str, Any]]:
     """
     Recursive parsing of data through tag connection.

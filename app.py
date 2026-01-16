@@ -10,6 +10,7 @@ import flask
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from datetime import timedelta
 import pyotp
+from data_visualizer import umap_all_data
 
 init_database()
 
@@ -168,4 +169,5 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--debug', help='generate a Google Auth for debug purpose', action="store_true")
     args = parser.parse_args()
     config.DEBUG = args.debug 
+    config.data_projection = umap_all_data()
     app.run(debug=config.DEBUG)

@@ -5,6 +5,7 @@ from dash import dcc, html, Input, Output, State, dash_table, callback
 import dash_cytoscape as cyto
 from data_visualizer import get_network_recursive, umap_all_data
 import plotly.express as px
+import config 
 
 def get_all_inputs(): 
     data_name = data_handler.get_data()
@@ -112,8 +113,10 @@ def display_node_data(data: dict[str, str], elements: dict[str, Any]) -> tuple[h
     Input('btn-recompute', 'n_clicks')
 )
 def update_emb_projection(n_clicks: int) -> Figure:
-    data_projection = umap_all_data()
-    fig = px.scatter(data_projection, x='x', y='y', hover_name='text', template="plotly_white")
+    if n_clicks:
+        config.data_projection = umap_all_data()
+
+    fig = px.scatter(config.data_projection, x='x', y='y', hover_name='text', template="plotly_white")
     fig.update_layout(
         margin=dict(l=10, r=10, t=40, b=10),
         legend=dict(
