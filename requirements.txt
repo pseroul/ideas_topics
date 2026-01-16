@@ -8,3 +8,4 @@ qrcode
 gunicorn
 chromadb
 umap-learn
+scikit-learn

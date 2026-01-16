@@ -64,6 +64,12 @@ def get_selected_data(subname: str) -> list[dict[Hashable, Any]]:
     conn.close()
     return df.to_dict("records")
 
+def get_description(data_name: str) -> str:
+    conn = sqlite3.connect(NAME_DB)
+    df = pd.read_sql_query("SELECT description FROM data WHERE name=(?)", conn, params=[data_name])
+    conn.close()
+    return df['description'].iloc[0]
+
 def get_tags() -> list[dict[Hashable, Any]]:
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM tags", conn)

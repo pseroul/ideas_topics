@@ -1,13 +1,15 @@
 import os
 import dash
 import argparse
+
+from werkzeug import Response
 import authenticator
 import config
-from pages import editor, viewer
+from pages import editor, viewer, writer
 from data_handler import init_database
 from dash import html, dcc, Input, Output, State
 import flask
-from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
 from datetime import timedelta
 import pyotp
 from data_visualizer import umap_all_data
@@ -80,6 +82,11 @@ home_layout = html.Div([
                 html.P("Visualize database and navigate into ideas."),
                 dcc.Link("Navigate", href="/viz", className="btn-secondary")
             ], className="card"),
+            html.Div([
+                html.H3("Writer"),
+                html.P("Write a white paper based on ideas."),
+                dcc.Link("Navigate", href="/writer", className="btn-secondary")
+            ], className="card"),
         ], className="grid-2")
     ], className="content-container")
 ])
@@ -102,11 +109,12 @@ login_layout = html.Div([
 
 
 # Navigation bar, only visible if connected
-def navbar():
+def navbar() -> html.Nav:
     return html.Nav([
         dcc.Link('Home', href='/home', className="nav-link"),
         dcc.Link('Add ideas', href='/edit', className="nav-link"),
         dcc.Link('Vizualisation', href='/viz', className="nav-link"),
+        dcc.Link('Writer', href='/writer', className="nav-link"),
         html.A('Sign out', href='/logout', className="nav-link logout-btn")
     ], className="navbar")
 
@@ -128,6 +136,7 @@ def display_page(pathname: str):
     nav = navbar()
     if pathname == '/edit': return editor.layout, nav
     if pathname == '/viz': return viewer.layout, nav
+    if pathname == '/writer': return writer.layout, nav
     return home_layout, nav 
 
 
@@ -160,7 +169,7 @@ def auth_login(n_clicks, email: str, pwd: str, otp: str, remember_checked: bool)
 
 
 @server.route('/logout')
-def logout():
+def logout() -> Response:
     logout_user()
     return flask.redirect('/login')
 
@@ -169,5 +178,4 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--debug', help='generate a Google Auth for debug purpose', action="store_true")
     args = parser.parse_args()
     config.DEBUG = args.debug 
-    config.data_projection = umap_all_data()
     app.run(debug=config.DEBUG)
