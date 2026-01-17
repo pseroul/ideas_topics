@@ -20,32 +20,31 @@ def update_toc(n) -> html.Div:
     embeddings = Embeddings()
     structure = embeddings.generate_toc_structure()
 
-    # --- ÉTAPE A : Extraire les titres Niv 1 et 2 pour le sommaire ---
+    # --- STEP A : Extract titles for summary ---
     summary_links = []
     
     for i, chap in enumerate(structure):
         chap_id = f"chap-{i}"
-        # Ajout Niveau 1
+        # Add Level 1
         summary_links.append(html.Li(html.A(chap['title'], href=f"#{chap_id}")))
         
-        # Ajout Niveau 2 (sous-sections)
+        # Add Level 2
         sub_links = []
         for j, sec in enumerate(chap.get('children', [])):
-            if sec['type'] == 'heading': # On ne liste pas les idées brutes ici
+            if sec['type'] == 'heading': 
                 sec_id = f"sec-{i}-{j}"
                 sub_links.append(html.Li(html.A(sec['title'], href=f"#{sec_id}")))
         
         if sub_links:
             summary_links.append(html.Ul(sub_links, style={'listStyleType': 'circle'}))
 
-    # --- ÉTAPE B : Fonctions de rendu du corps avec ID d'ancrage ---
+    # --- STEP B : Body content with link ---
     def render_body(node, path="0") -> html.Div | html.Li:
         node_id = f"anchor-{path}"
         
         if node['type'] == 'heading':
             level = node['level']
-            # On définit l'ID pour l'hyperlien (compatible avec le sommaire)
-            # path est de la forme "i" pour chapitre, "i-j" pour section
+            
             anchor_id = f"chap-{path}" if level == 1 else f"sec-{path}"
             
             title_style = {
@@ -55,31 +54,32 @@ def update_toc(n) -> html.Div:
                 'color': '#2c3e50'
             }
             
-            return html.Div([
-                html.H2(node['title'], id=anchor_id, style=title_style) if level == 1 
-                else html.H3(node['title'], id=anchor_id, style=title_style),
-                html.Ul([
-                    render_body(child, f"{path}-{k}") 
-                    for k, child in enumerate(node['children'])
-                ], style={'paddingLeft': '20px'})
-            ])
+            titlesection = None
+            if level == 1:
+                titlesection = html.H2(node['title'], id=anchor_id, style=title_style)
+            else:
+                titlesection = html.H3(node['title'], id=anchor_id, style=title_style)
+            return html.Li([titlesection,
+                            html.Ul([render_body(child, f"{path}-{k}") for k, child in enumerate(node['children'])],
+                                    style={'paddingLeft': '20px', 'borderLeft': '1px solid #ddd'})])
         else:
-            text = node['title']
-            if 'text' in node:
-                text = text + " : " + embeddings._unformat_text(node['title'], node["text"])
-            return html.Li(text, style={'color': '#444', 'margin': '5px 0'})
+            # final idea
+            text = embeddings._unformat_text(node['title'], node["text"])
+            text = node['title'] + " : " + text
+            return html.Li(text , style={'color': '#7f8c8d', 'fontSize': '0.9em'})
+        
 
-    # --- ÉTAPE C : Assemblage Final ---
+    # --- STEP C : Final assembly ---
     final_render = html.Div([
-        # Bloc Sommaire
+        # Content
         html.Div([
-            html.H2("Sommaire Rapide", style={'borderBottom': '2px solid #3498db', 'paddingBottom': '10px'}),
+            html.H2("Contents", style={'borderBottom': '2px solid #3498db', 'paddingBottom': '10px'}),
             html.Ul(summary_links, style={'lineHeight': '1.8em'})
         ], style={'backgroundColor': '#f8f9fa', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '40px'}),
         
         html.Hr(),
         
-        # Corps du texte
+        # Body
         html.Div([
             render_body(item, str(i)) for i, item in enumerate(structure)
         ])

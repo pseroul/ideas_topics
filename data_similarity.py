@@ -96,11 +96,9 @@ class Embeddings:
                 max_depth
             )
             
-            node_type = "heading" if level <= 2 else "content"
-            
             toc.append({
                 "title": title_text,
-                "type": node_type,
+                "type": "heading",
                 "level": level,
                 "children": children
             })
