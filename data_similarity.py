@@ -1,9 +1,9 @@
 import chromadb
+import re
 from chromadb.utils import embedding_functions
 from typing import Any
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 class Embeddings: 
@@ -56,7 +56,7 @@ class Embeddings:
 
         return self._generate_toc_structure(docs, ids, embeddings)
 
-    def _generate_toc_structure(self, docs, ids, embeddings, level=1, max_depth=3) -> list[dict[str, Any]] | list[Any]:
+    def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings, level: int=1, max_depth: int=3) -> list[dict[str, Any]] | list[Any]:
     
         X = np.array(embeddings)
     
@@ -87,7 +87,7 @@ class Embeddings:
             # --- NOUVEAUTÉ : Génération du titre synthétique ---
             title_text = self.generate_synthetic_title(cluster_docs)
             
-            # Pour le contenu, on garde toutes les idées (on ne retire plus le centroïde)
+            # Pour le contenu, on garde toutes les idées
             children = self._generate_toc_structure(
                 cluster_docs, 
                 cluster_ids, 
@@ -96,7 +96,7 @@ class Embeddings:
                 max_depth
             )
             
-            node_type = "chapter" if level == 1 else "section"
+            node_type = "heading" if level <= 2 else "content"
             
             toc.append({
                 "title": title_text,
@@ -107,29 +107,57 @@ class Embeddings:
 
         return toc
     
-    def generate_synthetic_title(self, cluster_docs) -> str:
+    def generate_synthetic_title(self, cluster_docs: list[str]) -> str:
         """
-        Génère un titre basé sur les mots-clés les plus pertinents du groupe.
+        Generate synthetic title from a cluster of ideas.
         """
         if not cluster_docs:
-            return "Section sans titre"
+            return "New Section"
         
-        # On utilise TF-IDF pour trouver les mots qui caractérisent le mieux ce groupe
-        # stop_words='french' (ou 'english') permet d'ignorer les mots inutiles (le, la, de...)
-        vectorizer = TfidfVectorizer(stop_words='english', max_features=10)
-        
+        clean_docs = [re.sub(r'[^\w\s]', ' ', doc.lower()) for doc in cluster_docs]
+
         try:
-            tfidf_matrix = vectorizer.fit_transform(cluster_docs)
-            # Somme des scores TF-IDF pour chaque mot sur l'ensemble du cluster
+            # On extrait un peu plus de termes pour avoir du choix après filtrage
+            vectorizer = TfidfVectorizer(
+                stop_words='english', 
+                ngram_range=(1, 2), 
+                max_features=30 
+            )
+            
+            tfidf_matrix = vectorizer.fit_transform(clean_docs)
             scores = np.asarray(tfidf_matrix.sum(axis=0)).flatten()
-            words = vectorizer.get_feature_names_out()
-            print("generate_synthetic_title:", words)
+            terms = vectorizer.get_feature_names_out()
             
-            # On trie pour avoir les meilleurs mots en premier
-            important_indices = np.argsort(scores)[::-1][:3]
-            top_words = [words[i].capitalize() for i in important_indices]
+            # Tri des termes par score TF-IDF décroissant
+            sorted_indices = np.argsort(scores)[::-1]
+            sorted_terms = [terms[i] for i in sorted_indices]
             
-            return " & ".join(top_words)
-        except:
-            # Cas de secours si le cluster est trop petit ou composé uniquement de stop-words
-            return cluster_docs[0][:50] + "..."
+            final_selection = []
+            
+            for term in sorted_terms:
+                # Sécurité : On limite à 2 ou 3 concepts clés pour le titre
+                if len(final_selection) >= 2:
+                    break
+                
+                # On vérifie si les mots du terme actuel sont déjà présents 
+                # dans les termes déjà sélectionnés (et inversement)
+                words_in_term = set(term.split())
+                is_redundant = False
+                
+                for selected in final_selection:
+                    words_in_selected = set(selected.split())
+                    # Si intersection non vide (ex: 'hardware' et 'hardware recommendation')
+                    if words_in_term.intersection(words_in_selected):
+                        is_redundant = True
+                        break
+                
+                if not is_redundant:
+                    final_selection.append(term)
+
+            # Mise en forme
+            title = " & ".join([t.capitalize() for t in final_selection])
+            
+            return title if len(title) > 2 else "Divers & " + cluster_docs[0][:20]
+
+        except Exception:
+            return "Section : " + cluster_docs[0][:30] + "..."
