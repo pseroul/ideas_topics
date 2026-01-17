@@ -112,9 +112,9 @@ login_layout = html.Div([
 def navbar() -> html.Nav:
     return html.Nav([
         dcc.Link('Home', href='/home', className="nav-link"),
-        dcc.Link('Add ideas', href='/edit', className="nav-link"),
-        dcc.Link('Vizualisation', href='/viz', className="nav-link"),
-        dcc.Link('Writer', href='/writer', className="nav-link"),
+        dcc.Link('Add', href='/edit', className="nav-link"),
+        dcc.Link('Search', href='/viz', className="nav-link"),
+        dcc.Link('Write', href='/writer', className="nav-link"),
         html.A('Sign out', href='/logout', className="nav-link logout-btn")
     ], className="navbar")
 
