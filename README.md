@@ -97,7 +97,7 @@ After=network.target
 User=[your user]
 WorkingDirectory=/home/[your user]/ideas_topics
 Environment="PATH=/home/[your user]/ideas_topics/venv/bin"
-ExecStart=/home/[your user]/ideas_topics/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8050 app:server
+ExecStart=/home/[your user]/ideas_topics/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:8050 app:server
 
 [Install]
 WantedBy=multi-user.target
