@@ -1,38 +1,57 @@
-from dash import html, Input, Output, callback
+from dash import html, Input, Output, dcc, callback
 from data_similarity import Embedder
+import json
+import time
+import os
 from typing import List, Dict, Any, Union
 
-layout = html.Div([
-    html.H1("White Paper"),
-    
-    html.Div([
-        html.Button("Refresh contents", id="btn-toc", n_clicks=0, className="btn-secondary"),
-        html.Div(id="toc-display", className="card")
-    ], className="card")
-])
+# Path to store the cached TOC content
+TOC_CACHE_PATH = "data/toc_cache.json"
 
-
-@callback(
-    Output("toc-display", "children"),
-    Input("btn-toc", "n_clicks"),
-    prevent_initial_call=True
-)
-def update_toc(n: int) -> Union[html.Div, Any]:
+def save_toc_structure(structure) -> None:
     """
-    Update the table of contents and content display.
+    Save the table of contents structure to a cache file for future use.
     
-    This callback generates a hierarchical table of contents and content
-    structure from the embedded data using the Embedder's generate_toc_structure method.
+    This function serializes the hierarchical structure data and stores it in
+    a JSON file so that the expensive generation process doesn't need to be
+    repeated on every application startup or refresh.
     
     Args:
-        n (int): Number of times the refresh button was clicked
-        
+        structure (list[dict]): The hierarchical structure data to be cached.
+            This should be the output from Embedder.generate_toc_structure().
+            
     Returns:
-        html.Div: The rendered table of contents and content structure
+        None
     """
-    embeddings = Embedder()
-    structure = embeddings.generate_toc_structure()
+    try:
+        # Save the raw structure data (which is JSON serializable)
+        with open(TOC_CACHE_PATH, 'w') as f:
+            json.dump(structure, f)
+    except Exception as e:
+        print(f"Error saving TOC structure: {e}")
 
+def load_toc_structure():
+    """
+    Load the table of contents structure from cache file if it exists.
+    
+    This function attempts to read previously cached structure data from
+    the cache file. If the file doesn't exist or is corrupted, it returns None.
+    
+    Returns:
+        list[dict] or None: The cached structure data if available and valid,
+            or None if no cache exists or if there was an error loading it.
+    """
+    try:
+        if os.path.exists(TOC_CACHE_PATH):
+            with open(TOC_CACHE_PATH, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading TOC structure: {e}")
+    return None
+
+def render_toc_from_structure(structure) -> html.Div:
+    """Render the TOC from a structure."""
+    embeddings = Embedder()
     # --- STEP A : Extract titles for summary ---
     summary_links: List[Union[html.Li, html.Ul]] = []
     
@@ -53,8 +72,6 @@ def update_toc(n: int) -> Union[html.Div, Any]:
 
     # --- STEP B : Body content with link ---
     def render_body(node: Dict[str, Any], path: str = "0") -> Union[html.Li, html.Div]:
-        node_id = f"anchor-{path}"
-        
         if node['type'] == 'heading':
             level = node['level']
             
@@ -77,7 +94,7 @@ def update_toc(n: int) -> Union[html.Div, Any]:
                                     style={'paddingLeft': '20px', 'borderLeft': '1px solid #ddd'})])
         else:
             # final idea
-            text = embeddings._unformat_text(node['title'], node["text"])
+            text = embeddings.unformat_text(node['title'], node["text"])
             text = node['title'] + " : " + text
             return html.Li(text , style={'color': '#7f8c8d', 'fontSize': '0.9em'})
         
@@ -98,3 +115,56 @@ def update_toc(n: int) -> Union[html.Div, Any]:
         ])
     ])
     return final_render
+
+layout = html.Div([
+    html.H1("White Paper"),
+    
+    html.Div([
+        html.Button("Refresh contents", id="btn-toc", n_clicks=0, className="btn-secondary"),
+        dcc.Loading(
+            id="loading-toc",
+            type="circle",
+            children=html.Div(id="toc-display", className="card")
+        )
+    ], className="card")
+])
+
+@callback(
+    Output("toc-display", "children"),
+    Input("btn-toc", "n_clicks")
+)
+def update_toc(n_clicks: int) -> Union[html.Div, Any]:
+    """
+    Update the table of contents and content display.
+    
+    This callback generates a hierarchical table of contents and content
+    structure from the embedded data using the Embedder's generate_toc_structure method.
+    
+    When the page loads, it will attempt to load cached content. When the refresh
+    button is clicked, it will regenerate the content and save it to cache.
+    
+    Args:
+        n_clicks (int): Number of times the refresh button was clicked
+        
+    Returns:
+        html.Div: The rendered table of contents and content structure
+    """
+    
+    # On first load (n_clicks = 0), try to load cached structure
+    # On subsequent clicks, always regenerate and save new structure
+    if n_clicks == 0:
+        cached_structure = load_toc_structure()
+        if cached_structure is not None:
+            # Return cached content if available on first load
+            # Hide loading indicator when done
+            return render_toc_from_structure(cached_structure)
+    
+    # Generate new structure (either on first load with no cache, or on button click)
+    embeddings = Embedder()
+    structure = embeddings.generate_toc_structure()
+
+    # Save the generated structure for future use
+    save_toc_structure(structure)
+    
+    # Render and return the content
+    return render_toc_from_structure(structure)

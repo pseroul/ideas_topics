@@ -32,11 +32,11 @@ class Embedder:
             embedding_function=self.emb_fn
         )
         
-    def _format_text(self, name: str, description: str) -> str:
+    def format_text(self, name: str, description: str) -> str:
         """
         Format text for storage in the embedding database.
         
-        This private method formats the name and description into a structured
+        This method formats the name and description into a structured
         string that can be stored in the database for embedding generation.
         
         Args:
@@ -48,11 +48,11 @@ class Embedder:
         """
         return f"{name}. {name}: {description}"
     
-    def _unformat_text(self, name: str, description: str) -> str:
+    def unformat_text(self, name: str, description: str) -> str:
         """
         Unformat text from the embedding database storage format.
         
-        This private method reverses the formatting applied by _format_text,
+        This method reverses the formatting applied by format_text,
         extracting the original description from the stored formatted string.
         
         Args:
@@ -75,7 +75,7 @@ class Embedder:
             name (str): The name/title of the data item to insert
             description (str): The description/content of the data item to insert
         """
-        self.collection.add(documents=[self._format_text(name, description)], 
+        self.collection.add(documents=[self.format_text(name, description)], 
                             metadatas=[{"name": name}],
                             ids=[name])     
 
@@ -90,7 +90,7 @@ class Embedder:
             name (str): The name/title of the data item to update
             description (str): The new description/content for the data item
         """
-        self.collection.update(documents=[self._format_text(name, description)], 
+        self.collection.update(documents=[self.format_text(name, description)], 
                             metadatas=[{"name": name}], 
                             ids=[name])
         
@@ -125,11 +125,11 @@ class Embedder:
         if n_results == 0:
             return []
         results = self.collection.query(
-            query_texts=[self._format_text(name, description)], 
+            query_texts=[self.format_text(name, description)], 
             n_results = n_results)
         names: list[str] = results["ids"][0]
         descriptions = results['documents'][0]
-        return [{'name': name, 'description': self._unformat_text(name, desc)} for name, desc in zip(names, descriptions)]
+        return [{'name': name, 'description': self.unformat_text(name, desc)} for name, desc in zip(names, descriptions)]
 
     def get_all_data(self) -> chromadb.GetResult:
         """
