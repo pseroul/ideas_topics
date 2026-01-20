@@ -1,5 +1,4 @@
 dash
-dash-cytoscape
 pandas
 dash-bootstrap-components
 flask-login
@@ -9,3 +8,4 @@ gunicorn
 chromadb
 umap-learn
 scikit-learn
+sentence_transformers

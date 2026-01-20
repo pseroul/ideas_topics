@@ -1,5 +1,6 @@
 from dash import html, Input, Output, callback
-from data_similarity import Embeddings
+from data_similarity import Embedder
+from typing import List, Dict, Any, Union
 
 layout = html.Div([
     html.H1("White Paper"),
@@ -16,12 +17,24 @@ layout = html.Div([
     Input("btn-toc", "n_clicks"),
     prevent_initial_call=True
 )
-def update_toc(n) -> html.Div:
-    embeddings = Embeddings()
+def update_toc(n: int) -> Union[html.Div, Any]:
+    """
+    Update the table of contents and content display.
+    
+    This callback generates a hierarchical table of contents and content
+    structure from the embedded data using the Embedder's generate_toc_structure method.
+    
+    Args:
+        n (int): Number of times the refresh button was clicked
+        
+    Returns:
+        html.Div: The rendered table of contents and content structure
+    """
+    embeddings = Embedder()
     structure = embeddings.generate_toc_structure()
 
     # --- STEP A : Extract titles for summary ---
-    summary_links = []
+    summary_links: List[Union[html.Li, html.Ul]] = []
     
     for i, chap in enumerate(structure):
         chap_id = f"chap-{i}"
@@ -29,7 +42,7 @@ def update_toc(n) -> html.Div:
         summary_links.append(html.Li(html.A(chap['title'], href=f"#{chap_id}")))
         
         # Add Level 2
-        sub_links = []
+        sub_links: List[html.Li] = []
         for j, sec in enumerate(chap.get('children', [])):
             if sec['type'] == 'heading': 
                 sec_id = f"sec-{i}-{j}"
@@ -39,7 +52,7 @@ def update_toc(n) -> html.Div:
             summary_links.append(html.Ul(sub_links, style={'listStyleType': 'circle'}))
 
     # --- STEP B : Body content with link ---
-    def render_body(node, path="0") -> html.Div | html.Li:
+    def render_body(node: Dict[str, Any], path: str = "0") -> Union[html.Li, html.Div]:
         node_id = f"anchor-{path}"
         
         if node['type'] == 'heading':

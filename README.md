@@ -15,8 +15,8 @@ To generate a single user with 2FA authenticator, execute the command line:
 ```
 python authenticator.py <email> <password> (--debug)
 ```
-This will print a link that you can passed to Qr.io to generate a QR Code or directly paste in your Google Authenticator app.
-You can use the optional *--debug* argument To create a debug Auth. It helps if you want to have one auth for your production environment and another one for debug purpose.
+This will print a link that you can pass to Qr.io to generate a QR Code or directly paste in your Google Authenticator app.
+You can use the optional *--debug* argument to create a debug auth. It helps if you want to have one auth for your production environment and another one for debug purposes.
 
 ### Generate server secret key
 Create a file called ```data/server.json``` and fill it with this model (change the secret_key):`
@@ -55,7 +55,7 @@ sudo apt install nginx
 Configure nginx to serve your application
 - Create file */etc/nginx/sites-available/ideas_handler* and paste the following code:
 ```
-gserver {
+server {
     listen 80;
     server_name [your_public_ip_address];
 
@@ -119,7 +119,7 @@ Go to OVH and:
 
 In your nginx configuration file, replace your **[your_public_ip_address]** by **[your_domain_name]**.
 
-## Use certificates for https connection
+## Use certificates for HTTPS connection
 > Warning: this is only feasible if you have a domain name and not a public IP address.
 
 Install and run Certbot:
@@ -129,7 +129,7 @@ sudo certbot --nginx -d [your_domain.com]
 ```
 Skip email address settings...
 
-Certbot rewrite your nginx configuration with the appropriate certificates.
+Certbot rewrites your nginx configuration with the appropriate certificates.
 
 Close http port:
 ```

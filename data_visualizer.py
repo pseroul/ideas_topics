@@ -3,12 +3,25 @@ import sqlite3
 from typing import Any
 import pandas as pd
 import umap
-from data_similarity import Embeddings
+from data_similarity import Embedder
 from config import NAME_DB
 
 def get_network_recursive(start_node: str, max_depth: int=2) -> list[dict[str, Any]]:
     """
-    Recursive parsing of data through tag connection.
+    Recursively parse data through tag connections to build a network graph.
+
+    This function traverses the data network starting from a given node, following
+    connections between data items and tags up to a specified maximum depth.
+    It retrieves both node information and connection edges for visualization.
+
+    Args:
+        start_node (str): The starting node name for the recursive traversal
+        max_depth (int, optional): Maximum depth for recursive traversal. Defaults to 2
+
+    Returns:
+        list[dict[str, Any]]: List of node and edge dictionaries formatted for Cytoscape
+            Each node dictionary contains 'data' with id, label, and description
+            Each edge dictionary contains 'data' with source and target connections
     """
     conn = sqlite3.connect(NAME_DB)
     nodes = set()
@@ -62,7 +75,17 @@ def get_network_recursive(start_node: str, max_depth: int=2) -> list[dict[str, A
     return node_elements + edges
 
 def umap_all_data() -> pd.DataFrame:
-    embedding = Embeddings()
+    """
+    Apply UMAP dimensionality reduction to all data embeddings.
+
+    This function retrieves all data from the Embedder, applies UMAP clustering
+    to reduce high-dimensional embeddings to 2D coordinates for visualization,
+    and returns a DataFrame with the projected coordinates.
+
+    Returns:
+        pd.DataFrame: DataFrame containing columns 'x', 'y' for coordinates and 'text' for labels
+    """
+    embedding = Embedder()
     data = embedding.get_all_data()
     vectors = data['embeddings']
     documents = data['documents']

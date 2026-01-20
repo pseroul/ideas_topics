@@ -1,4 +1,3 @@
-import os
 import dash
 import argparse
 
@@ -12,8 +11,8 @@ import flask
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
 from datetime import timedelta
 import pyotp
-from data_visualizer import umap_all_data
 
+# Initialize database using the function from data_handler.py
 init_database()
 
 # --- CONFIGURATION ---
@@ -29,14 +28,35 @@ login_manager.init_app(server)
 login_manager.login_view = "/login"
 
 class User(UserMixin):
+    """
+    User class for Flask-Login authentication.
+    
+    Represents a user in the authentication system with basic user identification.
+    
+    Attributes:
+        id (str): Unique identifier for the user
+    """
     def __init__(self, id): self.id = id
 
 @login_manager.user_loader
 def load_user(user_id):
+    """
+    Load a user from the database by user ID.
+    
+    This function is used by Flask-Login to retrieve user information
+    for authentication purposes.
+    
+    Args:
+        user_id (str): The ID of the user to load
+        
+    Returns:
+        User or None: The user object if found, None otherwise
+    """
     return User(user_id) if user_id == authenticator.get_user()[0] else None
 
 # --- APP DASH ---
 app = dash.Dash(__name__, title= "Pierre Seroul", server=server, suppress_callback_exceptions=True)
+
 app.index_string = '''
 <!DOCTYPE html>
 <html>
@@ -75,7 +95,7 @@ home_layout = html.Div([
             html.Div([
                 html.H3("Edition"),
                 html.P("Access to Edition to add new ideas/notes."),
-                dcc.Link("Open editor", href="/edit", className="btn-secondary")
+                dcc.Link("Add note", href="/edit", className="btn-secondary")
             ], className="card"),
             html.Div([
                 html.H3("Viewer"),
@@ -85,7 +105,7 @@ home_layout = html.Div([
             html.Div([
                 html.H3("Writer"),
                 html.P("Write a white paper based on ideas."),
-                dcc.Link("Navigate", href="/writer", className="btn-secondary")
+                dcc.Link("Write", href="/writer", className="btn-secondary")
             ], className="card"),
         ], className="grid-2")
     ], className="content-container")
@@ -110,6 +130,15 @@ login_layout = html.Div([
 
 # Navigation bar, only visible if connected
 def navbar() -> html.Nav:
+    """
+    Create the navigation bar for the application.
+    
+    Generates a navigation bar with links to different sections of the app
+    that is only visible when a user is authenticated.
+    
+    Returns:
+        html.Nav: The navigation bar component
+    """
     return html.Nav([
         dcc.Link('Home', href='/home', className="nav-link"),
         dcc.Link('Add', href='/edit', className="nav-link"),
@@ -130,6 +159,18 @@ app.layout = html.Div([
     [Input('url', 'pathname')]
 )
 def display_page(pathname: str):
+    """
+    Display the appropriate page content based on URL path.
+    
+    This callback handles routing between different pages of the application
+    and shows/hides navigation elements based on user authentication status.
+    
+    Args:
+        pathname (str): The current URL path
+        
+    Returns:
+        tuple: A tuple containing (page_content, navbar) to be displayed
+    """
     if not current_user.is_authenticated:
         return login_layout, None
     
@@ -149,6 +190,22 @@ def display_page(pathname: str):
      State('remember-me', 'remember')]
 )
 def auth_login(n_clicks, email: str, pwd: str, otp: str, remember_checked: bool):
+    """
+    Handle user authentication and login process.
+    
+    Validates user credentials including email, password, and Google Authenticator
+    code. Manages user session and redirects upon successful authentication.
+    
+    Args:
+        n_clicks (int): Number of times the login button was clicked
+        email (str): User's email address
+        pwd (str): User's password
+        otp (str): Google Authenticator code
+        remember_checked (bool): Whether "remember me" option was selected
+        
+    Returns:
+        tuple: A tuple containing (redirect_url, error_message) for login handling
+    """
     if n_clicks > 0:
         user_email, user_pwd = authenticator.get_user()
         if email == user_email and pwd == user_pwd:
@@ -170,6 +227,14 @@ def auth_login(n_clicks, email: str, pwd: str, otp: str, remember_checked: bool)
 
 @server.route('/logout')
 def logout() -> Response:
+    """
+    Handle user logout process.
+    
+    Logs out the current user and redirects them to the login page.
+    
+    Returns:
+        Response: Flask redirect response to login page
+    """
     logout_user()
     return flask.redirect('/login')
 

@@ -1,11 +1,25 @@
 import sqlite3
 from typing import Any, Hashable
 import pandas as pd
-from data_similarity import Embeddings
+from data_similarity import Embedder
 from config import NAME_DB
+import argparse
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 
 def init_database() -> None:
+    """
+    Initialize the SQLite database with required tables.
+    
+    Creates three tables if they don't exist:
+    - tags: stores tag information
+    - data: stores data items with descriptions
+    - relation: manages many-to-many relationships between data and tags
+    
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
 
@@ -32,6 +46,17 @@ def init_database() -> None:
 
 # GET DATA OR TAGS
 def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
+    """
+    Retrieve data items associated with specific tags.
+    
+    Fetches data items that are linked to the specified tags from the database.
+    
+    Args:
+        tags (str): Semicolon-separated string of tag names
+        
+    Returns:
+        list[dict[Hashable, str]]: List of dictionaries containing data items
+    """
     if not tags:
         return get_data()
     else:
@@ -50,6 +75,14 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
     return df.to_dict("records")
 
 def get_data() -> list[dict[Hashable, Any]]:
+    """
+    Retrieve all data items from the database.
+    
+    Gets all records from the data table in the SQLite database.
+    
+    Returns:
+        list[dict[Hashable, Any]]: List of dictionaries containing all data items
+    """
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data", conn)
     df['id'] = df['name']
@@ -57,6 +90,17 @@ def get_data() -> list[dict[Hashable, Any]]:
     return df.to_dict("records")
 
 def get_selected_data(subname: str) -> list[dict[Hashable, Any]]:
+    """
+    Retrieve data items matching a partial name search.
+    
+    Searches for data items whose names contain the specified substring.
+    
+    Args:
+        subname (str): Substring to search for in data names
+        
+    Returns:
+        list[dict[Hashable, Any]]: List of dictionaries containing matching data items
+    """
     subname = "%" + subname + "%"
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM data WHERE name LIKE (?)", conn, params=[subname])
@@ -65,18 +109,48 @@ def get_selected_data(subname: str) -> list[dict[Hashable, Any]]:
     return df.to_dict("records")
 
 def get_description(data_name: str) -> str:
+    """
+    Retrieve the description of a specific data item.
+    
+    Gets the description for a data item with the specified name.
+    
+    Args:
+        data_name (str): Name of the data item to retrieve description for
+        
+    Returns:
+        str: Description of the data item
+    """
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT description FROM data WHERE name=(?)", conn, params=[data_name])
     conn.close()
     return df['description'].iloc[0]
 
 def get_tags() -> list[dict[Hashable, Any]]:
+    """
+    Retrieve all tags from the database.
+    
+    Gets all records from the tags table in the SQLite database.
+    
+    Returns:
+        list[dict[Hashable, Any]]: List of dictionaries containing all tags
+    """
     conn = sqlite3.connect(NAME_DB)
     df = pd.read_sql_query("SELECT * FROM tags", conn)
     conn.close()
     return df.to_dict("records")
 
 def get_tags_from_data(data: str):
+    """
+    Retrieve tags associated with a specific data item.
+    
+    Gets all tags that are linked to the specified data item.
+    
+    Args:
+        data (str): Name of the data item to retrieve tags for
+        
+    Returns:
+        list[str]: List of tag names associated with the data item
+    """
     if not data:
         return get_tags()
     else:
@@ -87,16 +161,40 @@ def get_tags_from_data(data: str):
     return df['tag_name'].to_list()
 
 def get_similar_data(data: str) -> None:
+    """
+    Find similar data items based on semantic similarity.
+    
+    Uses the Embedder to find data items similar to the specified data item.
+    
+    Args:
+        data (str): Name of the data item to find similar items for
+        
+    Returns:
+        None: Results are returned through the Embedder's get_similar_data method
+    """
     conn = sqlite3.connect(NAME_DB)
     query = "SELECT name, description FROM data WHERE name = (?)"
     df = pd.read_sql_query(query, conn, params=[data])
-    embedding = Embeddings()
+    embedding = Embedder()
     results = embedding.get_similar_data(df['name'], df['description'])
     conn.close()
     return results
 
 # ADD FUNCTIONS
 def add_data(name: str, description: str) -> None:
+    """
+    Add a new data item to the database.
+    
+    Inserts a new record into the data table and adds the corresponding
+    embedding to the Embedder.
+    
+    Args:
+        name (str): Name of the data item to add
+        description (str): Description of the data item to add
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -105,15 +203,33 @@ def add_data(name: str, description: str) -> None:
             (name, description)
         )
         conn.commit()
-        embedding = Embeddings()
-        embedding.insert_data(name, description)
+        
+        # Run embedding insertion asynchronously using thread pool
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(lambda: Embedder().insert_data(name, description))
+            # Wait for completion but don't block the main thread significantly
+            future.result(timeout=30)  # 30 second timeout
+            
         print(f"data '{name}'  added successfully.")
     except sqlite3.IntegrityError:
         print(f"Errr : data '{name}' already exists.")
+    except Exception as e:
+        print(f"Error adding embedding for '{name}': {e}")
     finally:
         conn.close()
 
 def add_tag(name: str) -> None:
+    """
+    Add a new tag to the database.
+    
+    Inserts a new record into the tags table.
+    
+    Args:
+        name (str): Name of the tag to add
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -129,6 +245,18 @@ def add_tag(name: str) -> None:
         conn.close()
 
 def add_relation(data_name: str, tag_name: str) -> None:
+    """
+    Create a relationship between a data item and a tag.
+    
+    Inserts a new record into the relation table linking data and tag.
+    
+    Args:
+        data_name (str): Name of the data item
+        tag_name (str): Name of the tag
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -145,6 +273,18 @@ def add_relation(data_name: str, tag_name: str) -> None:
 
 # REMOVE FUNCTIONS
 def remove_data(name: str) -> None:
+    """
+    Remove a data item from the database.
+    
+    Deletes a record from the data table and removes the corresponding
+    embedding from the Embedder.
+    
+    Args:
+        name (str): Name of the data item to remove
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -153,7 +293,7 @@ def remove_data(name: str) -> None:
             (name,)
         )
         conn.commit()
-        embedding = Embeddings()
+        embedding = Embedder()
         embedding.remove_data(name)
         print(f"data '{name}' removed successfully.")
     except sqlite3.Error as e:
@@ -162,6 +302,17 @@ def remove_data(name: str) -> None:
         conn.close()
 
 def remove_tag(name: str) -> None:
+    """
+    Remove a tag from the database.
+    
+    Deletes a record from the tags table.
+    
+    Args:
+        name (str): Name of the tag to remove
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -177,6 +328,18 @@ def remove_tag(name: str) -> None:
         conn.close()
 
 def remove_relation(data_name: str, tag_name: str) -> None:
+    """
+    Remove a relationship between a data item and a tag.
+    
+    Deletes a record from the relation table.
+    
+    Args:
+        data_name (str): Name of the data item
+        tag_name (str): Name of the tag
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -192,9 +355,20 @@ def remove_relation(data_name: str, tag_name: str) -> None:
     finally:
         conn.close()
 
-
-# UPDATE FUNCTIONS
 def update_data(name: str, description: str) -> None:
+    """
+    Update an existing data item in the database.
+    
+    Updates the description of an existing data item and updates the
+    corresponding embedding in the Embedder.
+    
+    Args:
+        name (str): Name of the data item to update
+        description (str): New description for the data item
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(NAME_DB)
     cursor = conn.cursor()
     try:
@@ -203,18 +377,58 @@ def update_data(name: str, description: str) -> None:
             (description, name)
         )
         conn.commit()
-        embedding = Embeddings()
-        embedding.update_data(name, description)
+        
+        # Run embedding update asynchronously using thread pool
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(lambda: Embedder().update_data(name, description))
+            # Wait for completion but don't block the main thread significantly
+            future.result(timeout=30)  # 30 second timeout
+            
         print(f"data '{name}'  updated successfully.")
     except sqlite3.IntegrityError:
         print(f"Error : data '{name}' can't be updated.")
+    except Exception as e:
+        print(f"Error updating embedding for '{name}': {e}")
     finally:
         conn.close()
 
 def embed_all_data() -> None:
-    conn = sqlite3.connect(NAME_DB)    
-    df = pd.read_sql_query("SELECT * FROM data", conn)
-    embedding = Embeddings()
-    for _, row in df.iterrows():
-        embedding.insert_data(row['name'], row['description'])
-    conn.close()
+    """
+    Regenerate embeddings for all data items in the database.
+    
+    Retrieves all data items from the database and creates embeddings
+    for each one using the Embedder.
+    
+    Returns:
+        None
+    """
+    try:
+        # Use the existing get_data() function to retrieve all data
+        data_items = get_data()
+        
+        # Create Embedder instance
+        embedding = Embedder()
+        
+        # Process all data items
+        total_items = len(data_items)
+        print(f"Regenerating embeddings for {total_items} data items...")
+        
+        for i, item in enumerate(data_items, 1):
+            try:
+                embedding.insert_data(item['name'], item['description'])
+                print(f"Processed {i}/{total_items}: {item['name']}")
+            except Exception as e:
+                print(f"Error processing item '{item['name']}': {e}")
+                
+        print("Embedding regeneration completed successfully.")
+        
+    except Exception as e:
+        print(f"Error in embed_all_data: {e}")
+        raise
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Create user and generate Google Auth')
+    parser.add_argument('-e', '--embedding', help='regenerate embeddings for chromadb', action="store_true")
+    args = parser.parse_args()
+    if args.embedding: 
+        embed_all_data()

@@ -1,13 +1,16 @@
-from plotly.graph_objs._figure import Figure
 import data_handler
-from typing import Any
 from dash import dcc, html, Input, Output, State, dash_table, callback
-import dash_cytoscape as cyto
-from data_visualizer import get_network_recursive, umap_all_data
-import plotly.express as px
-import config 
 
 def get_all_inputs(): 
+    """
+    Get all available data and tag inputs for the dropdown.
+    
+    This function retrieves all data items and tags from the data handler
+    to populate the dropdown menu with selectable options.
+    
+    Returns:
+        list[dict[str, str]]: List of dictionaries containing label and value pairs
+    """
     data_name = data_handler.get_data()
     tag_name = data_handler.get_tags()
 
@@ -42,6 +45,20 @@ layout = html.Div([
     State('input-name', 'value')
 )
 def update_connection_graph(n_clicks: int, input_value: str):
+    """
+    Update the connection graph and related data table.
+    
+    This callback handles the submission of a selected item to display
+    its connections and related data in the visualization interface.
+    
+    Args:
+        n_clicks (int): Number of times the submit button was clicked
+        input_value (str): The selected value from the dropdown
+        
+    Returns:
+        tuple[html.Div, list[dict[str, str]]]: Tuple containing the node info display
+            and the related data table contents
+    """
     if n_clicks > 0 and input_value:
         description = data_handler.get_description(input_value)
         print(description)

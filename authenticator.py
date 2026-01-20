@@ -3,6 +3,20 @@ import json
 import argparse
 
 def generate_auth_link(email: str, mdp: str, debug: bool) -> None:
+    """
+    Generate authentication link and save user credentials.
+    
+    Creates a Google Authenticator secret and saves user credentials to a JSON file.
+    Generates a provisioning URI for QR code generation.
+    
+    Args:
+        email (str): User's email address
+        mdp (str): User's password
+        debug (bool): Whether to enable debug mode
+        
+    Returns:
+        None
+    """
     otp_secret = pyotp.random_base32()
     
     user = {
@@ -22,16 +36,40 @@ def generate_auth_link(email: str, mdp: str, debug: bool) -> None:
     print(f"Pasted the following link in Qr.io to obtain a QR code : {totp.provisioning_uri(name=appname, issuer_name='ServerPi')}")
 
 def get_server_secret_key() -> str:
+    """
+    Retrieve the server's secret key from configuration.
+    
+    Reads the secret key from the server configuration file.
+    
+    Returns:
+        str: The server's secret key
+    """
     with open("data/server.json", "r") as f:
         user = json.load(f)
     return user['secret_key']
 
 def get_user() -> tuple[str, str]:
+    """
+    Retrieve user credentials from configuration.
+    
+    Reads user email and password from the user configuration file.
+    
+    Returns:
+        tuple[str, str]: A tuple containing (email, password)
+    """
     with open("data/users.json", "r") as f:
         user = json.load(f)
     return user['email'], user['pwd']
 
 def get_otp_secret(): 
+    """
+    Retrieve the user's Google Authenticator secret.
+    
+    Reads the OTP secret from the user configuration file.
+    
+    Returns:
+        str: The user's Google Authenticator secret
+    """
     with open("data/users.json", "r") as f:
         user = json.load(f)
     return user['otp_secret']
