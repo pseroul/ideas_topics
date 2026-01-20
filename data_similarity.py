@@ -1,12 +1,12 @@
-import chromadb
 import re
-from chromadb.utils import embedding_functions
-from typing import Any
 import numpy as np
+from typing import Any, List
+from chromadb.utils import embedding_functions
+import chromadb
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.feature_extraction.text import TfidfVectorizer
+from keybert import KeyBERT
 
-class Embedder: 
+class Embedder:
     """
     A class for managing embeddings and similarity calculations using ChromaDB.
     
@@ -15,7 +15,7 @@ class Embedder:
     updating, removing, and finding similar data items.
     """
 
-    def __init__(self, db_path: str="./data/embeddings", collection_name: str = "Ideas_topics") -> None:
+    def __init__(self, db_path: str = "./data/embeddings", collection_name: str = "Ideas_topics") -> None:
         """
         Initialize the Embedder with a ChromaDB client and collection.
         
@@ -25,12 +25,16 @@ class Embedder:
             collection_name (str, optional): Name of the ChromaDB collection to use.
                 Defaults to "Ideas_topics".
         """
+        self.model_name = "all-distilroberta-v1"
         self.client = chromadb.PersistentClient(path=db_path)
-        self.emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-distilroberta-v1")
+        self.emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=self.model_name)
         self.collection = self.client.get_or_create_collection(
-            name=collection_name, 
+            name=collection_name,
             embedding_function=self.emb_fn
         )
+
+        self.kw_model = KeyBERT(model=self.model_name)
+
         
     def format_text(self, name: str, description: str) -> str:
         """
@@ -75,9 +79,11 @@ class Embedder:
             name (str): The name/title of the data item to insert
             description (str): The description/content of the data item to insert
         """
-        self.collection.add(documents=[self.format_text(name, description)], 
-                            metadatas=[{"name": name}],
-                            ids=[name])     
+        self.collection.add(
+            documents=[self.format_text(name, description)],
+            metadatas=[{"name": name}],
+            ids=[name]
+        )
 
     def update_data(self, name: str, description: str) -> None:
         """
@@ -90,11 +96,13 @@ class Embedder:
             name (str): The name/title of the data item to update
             description (str): The new description/content for the data item
         """
-        self.collection.update(documents=[self.format_text(name, description)], 
-                            metadatas=[{"name": name}], 
-                            ids=[name])
+        self.collection.update(
+            documents=[self.format_text(name, description)],
+            metadatas=[{"name": name}],
+            ids=[name]
+        )
         
-    def remove_data(self, name: str) -> None: 
+    def remove_data(self, name: str) -> None:
         """
         Remove data from the embedding database.
         
@@ -105,7 +113,7 @@ class Embedder:
         """
         self.collection.delete(ids=[name])
         
-    def get_similar_data(self, name: str, description: str, n_results: int=10) -> list[dict[str, str]]:
+    def get_similar_data(self, name: str, description: str, n_results: int = 10) -> list[dict[str, str]]:
         """
         Find similar data items based on semantic similarity.
         
@@ -125,10 +133,11 @@ class Embedder:
         if n_results == 0:
             return []
         results = self.collection.query(
-            query_texts=[self.format_text(name, description)], 
-            n_results = n_results)
+            query_texts=[self.format_text(name, description)],
+            n_results=n_results
+        )
         names: list[str] = results["ids"][0]
-        descriptions = results['documents'][0]
+        descriptions: list[str] = results['documents'][0]
         return [{'name': name, 'description': self.unformat_text(name, desc)} for name, desc in zip(names, descriptions)]
 
     def get_all_data(self) -> chromadb.GetResult:
@@ -155,11 +164,11 @@ class Embedder:
         data = self.collection.get(include=['embeddings', 'documents'])
         ids = data['ids']
         docs = data['documents']
-        embeddings: chromadb.Embeddings = data['embeddings']
+        embeddings: List[List[float]] = data['embeddings']
 
         return self._generate_toc_structure(docs, ids, embeddings)
 
-    def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings: chromadb.Embeddings, level: int=1, max_depth: int=3) -> list[dict[str, Any]] | list[Any]:
+    def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings, level: int = 1, max_depth: int = 3) -> list[dict[str, Any]] | list[Any]:
         """
         Recursively generate a hierarchical table of contents structure.
         
@@ -169,7 +178,7 @@ class Embedder:
         Args:
             docs (list[str]): List of document texts
             ids (list[str]): List of document IDs
-            embeddings (chromadb.Embeddings): List of document embeddings
+            embeddings: List of document embeddings
             level (int, optional): Current hierarchy level. Defaults to 1.
             max_depth (int, optional): Maximum recursion depth. Defaults to 3.
             
@@ -177,19 +186,15 @@ class Embedder:
             list[dict[str, Any]] | list[Any]: Hierarchical structure at current level
         """
         X = np.array(embeddings)
-    
-        # Condition d'arrêt : si peu d'idées ou profondeur max atteinte
+
         if len(X) <= 2 or level > max_depth:
             return [{"title": id, "text": doc, "type": "idea", "id": id} for doc, id in zip(docs, ids)]
 
-        # Calcul du nombre de clusters pour ce niveau
-        # On divise par 2 ou 3 pour créer des groupes digestes
         n_clusters = max(2, int(np.sqrt(len(X))))
-        
-        # Clustering pour ce niveau
+
         clustering = AgglomerativeClustering(
-            n_clusters=n_clusters, 
-            metric='cosine', 
+            n_clusters=n_clusters,
+            metric='cosine',
             linkage='average'
         )
         labels = clustering.fit_predict(X)
@@ -197,23 +202,21 @@ class Embedder:
         toc = []
         for label in np.unique(labels):
             indices = np.where(labels == label)[0]
-            
+
             cluster_embeddings = [embeddings[i] for i in indices]
             cluster_docs = [docs[i] for i in indices]
             cluster_ids = [ids[i] for i in indices]
 
-            # --- NOUVEAUTÉ : Génération du titre synthétique ---
             title_text = self.generate_synthetic_title(cluster_docs)
-            
-            # Pour le contenu, on garde toutes les idées
+
             children = self._generate_toc_structure(
-                cluster_docs, 
-                cluster_ids, 
-                cluster_embeddings, 
-                level + 1, 
+                cluster_docs,
+                cluster_ids,
+                cluster_embeddings,
+                level + 1,
                 max_depth
             )
-            
+
             toc.append({
                 "title": title_text,
                 "type": "heading",
@@ -225,65 +228,37 @@ class Embedder:
     
     def generate_synthetic_title(self, cluster_docs: list[str]) -> str:
         """
-        Generate a synthetic title from a cluster of ideas using TF-IDF analysis.
-        
-        This method analyzes a group of related documents to extract the most
-        significant terms and create a coherent, descriptive title that represents
-        the semantic content of the cluster.
-        
-        Args:
-            cluster_docs (list[str]): List of document texts in the cluster
-            
-        Returns:
-            str: Generated synthetic title for the cluster
+        Extracts the most representative keywords to form a coherent 2-3 word title.
         """
         if not cluster_docs:
-            return "New Section"
+            return "Untitled Section"
         
-        clean_docs = [re.sub(r'[^\w\s]', ' ', doc.lower()) for doc in cluster_docs]
+        # Combine documents into a single text block
+        # We clean basic punctuation to help keyword extraction
+        full_text = " ".join([re.sub(r'[^\w\s]', '', doc.lower()) for doc in cluster_docs])
 
         try:
-            # On extrait un peu plus de termes pour avoir du choix après filtrage
-            vectorizer = TfidfVectorizer(
-                stop_words='english', 
-                ngram_range=(1, 2), 
-                max_features=30 
+            # Extract keywords
+            keywords = self.kw_model.extract_keywords(
+                full_text, 
+                keyphrase_ngram_range=(1, 2), 
+                stop_words='english',
+                use_mmr=True, # Diversifies the result to avoid redundancy
+                diversity=0.7,
+                top_n=2
             )
-            
-            tfidf_matrix = vectorizer.fit_transform(clean_docs)
-            scores = np.asarray(tfidf_matrix.sum(axis=0)).flatten()
-            terms = vectorizer.get_feature_names_out()
-            
-            # Tri des termes par score TF-IDF décroissant
-            sorted_indices = np.argsort(scores)[::-1]
-            sorted_terms = [terms[i] for i in sorted_indices]
-            
-            final_selection = []
-            
-            for term in sorted_terms:
-                # Sécurité : On limite à 2 ou 3 concepts clés pour le titre
-                if len(final_selection) >= 2:
-                    break
-                
-                # On vérifie si les mots du terme actuel sont déjà présents 
-                # dans les termes déjà sélectionnés (et inversement)
-                words_in_term = set(term.split())
-                is_redundant = False
-                
-                for selected in final_selection:
-                    words_in_selected = set(selected.split())
-                    # Si intersection non vide (ex: 'hardware' et 'hardware recommendation')
-                    if words_in_term.intersection(words_in_selected):
-                        is_redundant = True
-                        break
-                
-                if not is_redundant:
-                    final_selection.append(term)
 
-            # Mise en forme
-            title = " & ".join([t.capitalize() for t in final_selection])
+            if not keywords:
+                return "General Topic"
+
+            # We take the top 1 or 2 results and format them
+            # Result format is [('keyword', score), ...]
+            title_parts = [k[0] for k in keywords]
             
-            return title if len(title) > 2 else "Divers & " + cluster_docs[0][:20]
+            # Create a title from the top 1 or 2 phrases
+            final_title = " & ".join(title_parts).title()
+            
+            return final_title
 
         except Exception:
-            return "Section : " + cluster_docs[0][:30] + "..."
+            return "Section: " + cluster_docs[0][:20].title()

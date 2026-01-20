@@ -9,3 +9,4 @@ chromadb
 umap-learn
 scikit-learn
 sentence_transformers
+keybert
