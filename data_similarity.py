@@ -1,10 +1,11 @@
 import re
 import numpy as np
-from typing import Any, List
+from typing import Any, List, Generator
 from chromadb.utils import embedding_functions
 import chromadb
 from sklearn.cluster import AgglomerativeClustering
 from keybert import KeyBERT
+import gc
 
 class Embedder:
     """
@@ -151,22 +152,32 @@ class Embedder:
         """
         return self.collection.get(include=['embeddings', 'documents'])
     
-    def generate_toc_structure(self) -> list[dict[str, Any]] | list[Any]:
+    def generate_toc_structure(self, max_items: int = 500) -> list:
         """
         Generate a hierarchical table of contents structure from all data.
         
         Creates a tree-like structure organizing all data items hierarchically
         based on semantic similarities using clustering techniques.
         
+        Args:
+            max_items (int): Maximum number of items to process to limit memory usage
+            
         Returns:
-            list[dict[str, Any]] | list[Any]: Hierarchical structure of data items
+            list: Hierarchical structure of data items
         """
-        data = self.collection.get(include=['embeddings', 'documents'])
+        # Stream data in chunks to limit memory usage
+        data = self.collection.get(include=['embeddings', 'documents'], limit=max_items)
         ids = data['ids']
         docs = data['documents']
-        embeddings: List[List[float]] = data['embeddings']
+        embeddings = data['embeddings']
 
-        return self._generate_toc_structure(docs, ids, embeddings)
+        # Clear large data structures immediately after use
+        del data
+        gc.collect()
+        
+        toc = self._generate_toc_structure(docs, ids, embeddings)
+
+        return toc
 
     def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings, level: int = 1, max_depth: int = 3) -> list[dict[str, Any]] | list[Any]:
         """
@@ -190,8 +201,6 @@ class Embedder:
         if len(X) <= 2 or level > max_depth:
             # Create entries with originality scores for leaf nodes
             entries = [{"title": id, "text": doc, "type": "idea", "id": id} for doc, id in zip(docs, ids)]
-            # Calculate originality scores for all entries
-            self._calculate_originality_scores(entries, embeddings)
             return entries
 
         n_clusters = max(2, int(np.sqrt(len(X))))
@@ -221,17 +230,13 @@ class Embedder:
                 max_depth
             )
 
-            # Create heading entry with originality score
             heading_entry = {
                 "title": title_text,
                 "type": "heading",
                 "level": level,
-                "children": children
+                "children": children,
             }
-            
-            # Calculate originality score for this heading
-            self._calculate_heading_originality_score(heading_entry, embeddings, docs, ids)
-            
+                        
             toc.append(heading_entry)
 
         return toc
@@ -287,163 +292,3 @@ class Embedder:
 
         except Exception:
             return "Section: " + cluster_docs[0][:20].title()
-
-    def _calculate_originality_scores(self, entries: list[dict[str, Any]], embeddings: List[List[float]]) -> None:
-        """
-        Calculate originality scores for all entries based on their distance to k nearest neighbors.
-        
-        Args:
-            entries (list[dict[str, Any]]): List of TOC entries to calculate scores for
-            embeddings (List[List[float]]): List of document embeddings
-        """
-        if len(entries) <= 1:
-            # If there's only one entry or none, set score to 1.0 (most original)
-            for entry in entries:
-                entry["originality_score"] = 1.0
-            return
-            
-        # Convert embeddings to numpy array for distance calculations
-        X = np.array(embeddings)
-        n_entries = len(X)
-        k = min(5, n_entries - 1)  # Use minimum of 5 or (total_entries - 1)
-        
-        # For each entry, calculate distances to all others and find k nearest
-        scores = []
-        for i in range(n_entries):
-            # Calculate distances to all other entries
-            distances = []
-            for j in range(n_entries):
-                if i != j:
-                    # Calculate cosine distance
-                    dot_product = np.dot(X[i], X[j])
-                    norm_i = np.linalg.norm(X[i])
-                    norm_j = np.linalg.norm(X[j])
-                    if norm_i > 0 and norm_j > 0:
-                        cos_sim = dot_product / (norm_i * norm_j)
-                        cos_dist = 1 - cos_sim
-                        distances.append(cos_dist)
-                    else:
-                        # If one vector is zero, set distance to maximum
-                        distances.append(1.0)
-            
-            if len(distances) > 0:
-                # Use argpartition for better performance when we only need k smallest values
-                if k > 0 and len(distances) > k:
-                    # Get indices of k smallest distances
-                    nearest_indices = np.argpartition(distances, k)[:k]
-                    k_nearest_distances = [distances[idx] for idx in nearest_indices]
-                else:
-                    k_nearest_distances = distances[:k] if k > 0 else distances
-                
-                # Average distance to k nearest neighbors
-                avg_distance = np.mean(k_nearest_distances)
-                # Convert to originality score (higher distance = more original)
-                # Normalize to 0-1 scale where 1 is most original
-                originality_score = 1.0 - (avg_distance / (1.0 + 1e-8))
-                # Ensure score is between 0 and 1
-                originality_score = max(0.0, min(1.0, originality_score))
-                scores.append(originality_score)
-            else:
-                scores.append(1.0)
-        
-        # Assign scores to entries
-        for i, entry in enumerate(entries):
-            entry["originality_score"] = scores[i]
-
-    def _calculate_heading_originality_score(self, heading_entry: dict[str, Any], all_embeddings: List[List[float]], all_docs: list[str], all_ids: list[str]) -> None:
-        """
-        Calculate originality score for a heading entry based on its children and the overall dataset.
-        
-        Args:
-            heading_entry (dict[str, Any]): The heading entry to calculate score for
-            all_embeddings (List[List[float]]): All document embeddings
-            all_docs (list[str]): All document texts
-            all_ids (list[str]): All document IDs
-        """
-        # Get all child entries to calculate their embeddings
-        def collect_child_embeddings(entry, child_embeddings, child_docs, child_ids):
-            """Recursively collect embeddings from all children."""
-            if entry.get("type") == "idea":
-                # This is a leaf node
-                try:
-                    idx = all_ids.index(entry["id"])
-                    child_embeddings.append(all_embeddings[idx])
-                    child_docs.append(all_docs[idx])
-                    child_ids.append(entry["id"])
-                except ValueError:
-                    # If ID not found, skip this entry
-                    pass
-            elif entry.get("children"):
-                # This is a heading with children
-                for child in entry["children"]:
-                    collect_child_embeddings(child, child_embeddings, child_docs, child_ids)
-        
-        # Collect all child data
-        child_embeddings = []
-        child_docs = []
-        child_ids = []
-        
-        if "children" in heading_entry:
-            for child in heading_entry["children"]:
-                collect_child_embeddings(child, child_embeddings, child_docs, child_ids)
-        
-        # If we have child data, calculate originality based on children vs rest of dataset
-        if len(child_embeddings) > 0 and len(all_embeddings) > 0:
-            # Calculate average embedding for this heading's children
-            avg_child_embedding = np.mean(child_embeddings, axis=0)
-            
-            # Convert all_embeddings to numpy array for efficient computation
-            all_emb_array = np.array(all_embeddings)
-            
-            # Create mask for non-child entries
-            child_id_set = set(child_ids)
-            non_child_mask = [i for i, emb_id in enumerate(all_ids) if emb_id not in child_id_set]
-            
-            if len(non_child_mask) > 0:
-                # Get embeddings of non-child entries
-                non_child_embeddings = all_emb_array[non_child_mask]
-                
-                # Calculate cosine distances efficiently using vectorized operations
-                # Normalize the embeddings for cosine similarity calculation
-                norm_child = np.linalg.norm(avg_child_embedding)
-                norm_non_child = np.linalg.norm(non_child_embeddings, axis=1)
-                
-                # Avoid division by zero
-                norm_child = norm_child if norm_child > 0 else 1e-8
-                norm_non_child = np.where(norm_non_child == 0, 1e-8, norm_non_child)
-                
-                # Calculate cosine similarities
-                dot_products = np.dot(non_child_embeddings, avg_child_embedding)
-                cos_similarities = dot_products / (norm_non_child * norm_child)
-                
-                # Convert to cosine distances
-                cos_distances = 1 - cos_similarities
-                
-                # Use k nearest neighbors (k=5) for heading score calculation
-                k = min(5, len(cos_distances))
-                if k > 0 and len(cos_distances) > 0:
-                    # Use argpartition for better performance
-                    # Ensure k is within valid bounds for argpartition
-                    if len(cos_distances) > 1:
-                        k = min(k, len(cos_distances) - 1)
-                        nearest_indices = np.argpartition(cos_distances, k)[:k]
-                        k_nearest_distances = cos_distances[nearest_indices]
-                        # Average distance to k nearest neighbors
-                        avg_distance = float(np.mean(k_nearest_distances))
-                    else:
-                        # If only one distance, use that distance
-                        avg_distance = float(cos_distances[0]) if len(cos_distances) > 0 else 0.0
-                else:
-                    avg_distance = 0.0
-                
-                # Convert to originality score
-                originality_score = 1.0 - (avg_distance / (1.0 + 1e-8))
-                # Ensure score is between 0 and 1
-                originality_score = max(0.0, min(1.0, originality_score))
-                heading_entry["originality_score"] = originality_score
-            else:
-                # If no other entries, this is very original
-                heading_entry["originality_score"] = 1.0
-        else:
-            # Fallback: if no children or no embeddings, set to 1.0
-            heading_entry["originality_score"] = 1.0

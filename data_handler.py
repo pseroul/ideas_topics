@@ -45,7 +45,7 @@ def init_database() -> None:
     conn.close()
 
 # GET DATA OR TAGS
-def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
+def get_data_from_tags(tags: str, limit: int = 500) -> list[dict[Hashable, str]]:
     """
     Retrieve data items associated with specific tags.
     
@@ -53,12 +53,13 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
     
     Args:
         tags (str): Semicolon-separated string of tag names
+        limit (int): Maximum number of results to return to limit memory usage
         
     Returns:
         list[dict[Hashable, str]]: List of dictionaries containing data items
     """
     if not tags:
-        return get_data()
+        return get_data(limit)
     else:
         tags_list = tags.split(";")
         placeholders = ", ".join(["?"] * len(tags_list))
@@ -68,23 +69,28 @@ def get_data_from_tags(tags: str) -> list[dict[Hashable, str]]:
         FROM data d
         JOIN relation r ON d.name = r.data_name
         JOIN tags t ON r.tag_name = t.name
-        WHERE t.name IN ({placeholders});
+        WHERE t.name IN ({placeholders})
+        LIMIT {limit};
         """
         df = pd.read_sql_query(query, conn, params=tags_list)
         conn.close()
     return df.to_dict("records")
 
-def get_data() -> list[dict[Hashable, Any]]:
+def get_data(limit: int = 500) -> list[dict[Hashable, Any]]:
     """
-    Retrieve all data items from the database.
+    Retrieve all data items from the database with limit to prevent memory issues.
     
     Gets all records from the data table in the SQLite database.
     
+    Args:
+        limit (int): Maximum number of records to return
+        
     Returns:
         list[dict[Hashable, Any]]: List of dictionaries containing all data items
     """
     conn = sqlite3.connect(NAME_DB)
-    df = pd.read_sql_query("SELECT * FROM data", conn)
+    query = f"SELECT * FROM data LIMIT {limit}"
+    df = pd.read_sql_query(query, conn)
     df['id'] = df['name']
     conn.close()
     return df.to_dict("records")
