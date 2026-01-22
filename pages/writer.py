@@ -84,36 +84,51 @@ def render_toc_from_structure(structure) -> html.Div:
                 'color': '#2c3e50'
             }
             
+            heading_content = html.Div([
+                html.Span(node['title'], style={'flex': '1'}),  # Title on left
+                html.Span(f"Originality: {node['originality_score']:.2f}", 
+                            style={'color': '#3498db', 'fontWeight': 'bold'})  # Score on right
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
+            
             titlesection = None
             if level == 1:
-                titlesection = html.H2(node['title'], id=anchor_id, style=title_style)
+                titlesection = html.H2(heading_content, id=anchor_id, style=title_style)
             else:
-                titlesection = html.H3(node['title'], id=anchor_id, style=title_style)
-            return html.Li([titlesection,
-                            html.Ul([render_body(child, f"{path}-{k}") for k, child in enumerate(node['children'])],
-                                    style={'paddingLeft': '20px', 'borderLeft': '1px solid #ddd'})])
+                titlesection = html.H3(heading_content, id=anchor_id, style=title_style)
+                    
+            # Add visual separation for section content with enhanced styling
+            section_content = html.Div([
+                titlesection,
+                html.Ul([render_body(child, f"{path}-{k}") for k, child in enumerate(node['children'])],
+                        style={'paddingLeft': '20px', 'borderLeft': '1px solid #ddd', 'marginTop': '15px'})
+            ], style={'marginBottom': '30px', 'paddingBottom': '20px', 'borderBottom': '1px solid #eee', 'paddingLeft': '10px'})
+            
+            return html.Li(section_content)
         else:
             # final idea
             text = embeddings.unformat_text(node['title'], node["text"])
-            text = node['title'] + " : " + text
-            return html.Li(text , style={'color': '#7f8c8d', 'fontSize': '0.9em'})
+            full_text = node['title'] + " : " + text
+            
+            return html.Li([
+                html.Span(full_text, style={'flex': '1'}),
+                html.Span(f"Originality: {node['originality_score']:.2f}", 
+                            style={'marginLeft': '20px', 'color': '#3498db', 'fontWeight': 'bold'})
+            ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'color': '#7f8c8d', 'fontSize': '0.9em'})
         
 
     # --- STEP C : Final assembly ---
     final_render = html.Div([
         # Content
         html.Div([
-            html.H2("Contents", style={'borderBottom': '2px solid #3498db', 'paddingBottom': '10px'}),
+            html.H2("Contents", style={'borderBottom': '2px solid #3498db', 'paddingBottom': '10px', 'marginBottom': '20px'}),
             html.Ul(summary_links, style={'lineHeight': '1.8em'})
-        ], style={'backgroundColor': '#f8f9fa', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '40px'}),
+        ], style={'backgroundColor': '#f8f9fa', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '30px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}),
         
-        html.Hr(),
-        
-        # Body
+        # Body with improved section separation
         html.Div([
             render_body(item, str(i)) for i, item in enumerate(structure)
-        ])
-    ])
+        ], style={'marginBottom': '40px'})
+    ], style={'padding': '20px'})
     return final_render
 
 layout = html.Div([

@@ -81,6 +81,22 @@ h1, h2, h3 { margin-top: 0; color: var(--dark); }
     .grid-2 { grid-template-columns: 1fr; }
     .content-container { padding: 10px; }
     .card { padding: 15px; }
+    
+    /* Enhanced mobile spacing for sections */
+    .section-separator {
+        margin: 15px 0 !important;
+        padding: 15px 0 !important;
+    }
+    
+    /* Reduce spacing for mobile */
+    .section-content {
+        margin: 10px 0 !important;
+    }
+    
+    /* Tighter heading spacing on mobile */
+    h2, h3 {
+        margin: 15px 0 10px 0 !important;
+    }
 }
 
 /* Barre de navigation principale */
