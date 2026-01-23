@@ -4,7 +4,6 @@ import pandas as pd
 from data_similarity import Embedder
 from config import NAME_DB
 import argparse
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 

@@ -1,9 +1,7 @@
 dash
 pandas
-dash-bootstrap-components
 flask-login
 pyotp
-qrcode
 gunicorn
 chromadb
 umap-learn

@@ -6,6 +6,8 @@ This application allows to enter new **ideas/descriptions** or **title/notes** a
 To install the application, follow the steps: 
 ```
 python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 

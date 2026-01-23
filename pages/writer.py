@@ -1,7 +1,6 @@
 from dash import html, Input, Output, dcc, callback
 from data_similarity import Embedder
 import json
-import time
 import os
 from typing import List, Dict, Any, Union
 
