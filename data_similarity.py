@@ -1,9 +1,12 @@
 import re
 import numpy as np
-from typing import Any, List, Generator
+from typing import Any
 from chromadb.utils import embedding_functions
 import chromadb
+import umap
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import MinMaxScaler
 from keybert import KeyBERT
 import gc
 
@@ -11,9 +14,9 @@ class Embedder:
     """
     A class for managing embeddings and similarity calculations using ChromaDB.
     
-    This class provides functionality for storing, retrieving, and querying
-    text data with semantic embeddings, including operations for inserting,
-    updating, removing, and finding similar data items.
+    Provides functionality for storing, retrieving, and querying text data with
+    semantic embeddings, including operations for inserting, updating, removing,
+    and finding similar data items.
     """
 
     def __init__(self, db_path: str = "./data/embeddings", collection_name: str = "Ideas_topics") -> None:
@@ -41,8 +44,7 @@ class Embedder:
         """
         Format text for storage in the embedding database.
         
-        This method formats the name and description into a structured
-        string that can be stored in the database for embedding generation.
+        Formats the name and description into a structured string for embedding generation.
         
         Args:
             name (str): The name/title of the data item
@@ -57,8 +59,8 @@ class Embedder:
         """
         Unformat text from the embedding database storage format.
         
-        This method reverses the formatting applied by format_text,
-        extracting the original description from the stored formatted string.
+        Reverses the formatting applied by format_text, extracting the original
+        description from the stored formatted string.
         
         Args:
             name (str): The name/title of the data item
@@ -174,12 +176,46 @@ class Embedder:
         # Clear large data structures immediately after use
         del data
         gc.collect()
+
+        originalities = self.generate_originality_score(embeddings)
         
-        toc = self._generate_toc_structure(docs, ids, embeddings)
+        toc = self._generate_toc_structure(docs, ids, embeddings, originalities)
 
         return toc
 
-    def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings, level: int = 1, max_depth: int = 3) -> list[dict[str, Any]] | list[Any]:
+    def generate_originality_score(self, embeddings) -> list[float]:
+        """
+        Generate originality scores for documents using UMAP dimensionality reduction
+        and Local Outlier Factor analysis.
+        
+        This method reduces the dimensionality of embeddings using UMAP and then
+        applies Local Outlier Factor to identify outliers (unique/creative documents)
+        which are considered more original.
+        
+        Args:
+            embeddings: List of document embeddings to analyze
+            
+        Returns:
+            list[float]: Normalized originality scores for each document (higher = more original)
+        """
+        X = np.array(embeddings)
+
+        reducer = umap.UMAP(
+            n_neighbors=15,      # Controls local vs. global structure
+            n_components=10,     # Target dimensions for clustering
+            metric='cosine',     # Use cosine for RoBERTa embeddings
+            low_memory=True      # Helps with very large datasets
+        )
+
+        reduced_X = reducer.fit_transform(X)
+
+        lof = LocalOutlierFactor(n_neighbors=20)
+        lof.fit_predict(reduced_X)
+        score_density = -lof.negative_outlier_factor_
+        return MinMaxScaler().fit_transform(score_density.reshape(-1, 1)).flatten()
+
+
+    def _generate_toc_structure(self, docs: list[str], ids: list[str], embeddings, originalities: list[float], level: int = 1, max_depth: int = 3) -> list[dict[str, Any]] | list[Any]:
         """
         Recursively generate a hierarchical table of contents structure.
         
@@ -190,6 +226,7 @@ class Embedder:
             docs (list[str]): List of document texts
             ids (list[str]): List of document IDs
             embeddings: List of document embeddings
+            originalities (list[float]): Originality scores for each document
             level (int, optional): Current hierarchy level. Defaults to 1.
             max_depth (int, optional): Maximum recursion depth. Defaults to 3.
             
@@ -199,8 +236,7 @@ class Embedder:
         X = np.array(embeddings)
 
         if len(X) <= 2 or level > max_depth:
-            # Create entries with originality scores for leaf nodes
-            entries = [{"title": id, "text": doc, "type": "idea", "id": id} for doc, id in zip(docs, ids)]
+            entries = [{"title": id, "text": doc, "type": "idea", "id": id, "originality": str(int(originality * 100)) + "%"} for doc, id, originality in zip(docs, ids, originalities)]
             return entries
 
         n_clusters = max(2, int(np.sqrt(len(X))))
@@ -219,6 +255,10 @@ class Embedder:
             cluster_embeddings = [embeddings[i] for i in indices]
             cluster_docs = [docs[i] for i in indices]
             cluster_ids = [ids[i] for i in indices]
+            cluster_originalities = [originalities[i] for i in indices]
+
+            # Compute average originality score for the cluster
+            avg_cluster_originality = np.mean(cluster_originalities) if cluster_originalities else 0
 
             title_text = self.generate_synthetic_title(cluster_docs)
 
@@ -226,6 +266,7 @@ class Embedder:
                 cluster_docs,
                 cluster_ids,
                 cluster_embeddings,
+                cluster_originalities,
                 level + 1,
                 max_depth
             )
@@ -235,6 +276,7 @@ class Embedder:
                 "type": "heading",
                 "level": level,
                 "children": children,
+                "originality": str(int(avg_cluster_originality * 100)) + "%"
             }
                         
             toc.append(heading_entry)

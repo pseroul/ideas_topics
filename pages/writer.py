@@ -77,13 +77,7 @@ def render_toc_from_structure(structure) -> html.Div:
         if sub_links:
             summary_links.append(html.Ul(sub_links, style={'listStyleType': 'circle'}))
 
-    # --- STEP B : Body content with link ---
-    def format_originality_score(score):
-        """Safely format originality score for display."""
-        if isinstance(score, (int, float)) and not isinstance(score, bool):
-            return f"{score:.2f}"
-        return str(score)
-    
+    # --- STEP B : Body content with link ---   
     def render_body(node: Dict[str, Any], path: str = "0") -> Union[html.Li, html.Div]:
         if node['type'] == 'heading':
             level = node['level']
@@ -99,7 +93,7 @@ def render_toc_from_structure(structure) -> html.Div:
             
             heading_content = html.Div([
                 html.Span(node['title'], style={'flex': '1'}),  # Title on left
-                html.Span(f"Originality: {format_originality_score(node.get('originality_score', 'N/A'))}", 
+                html.Span(f"Originality: {node.get('originality', 'N/A')}", 
                             style={'color': '#3498db', 'fontWeight': 'bold'})  # Score on right
             ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
             
@@ -124,7 +118,7 @@ def render_toc_from_structure(structure) -> html.Div:
             
             return html.Li([
                 html.Span(full_text, style={'flex': '1'}),
-                html.Span(f"Originality: {format_originality_score(node.get('originality_score', 'N/A'))}", 
+                html.Span(f"Originality: {node.get('originality', 'N/A')}", 
                             style={'marginLeft': '20px', 'color': '#3498db', 'fontWeight': 'bold'})
             ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'color': '#7f8c8d', 'fontSize': '0.9em'})
         
