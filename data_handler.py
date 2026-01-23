@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Any, Hashable
 import pandas as pd
-from data_similarity import Embedder
+from chroma_client import ChromaClient
 from config import NAME_DB
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -169,19 +169,19 @@ def get_similar_data(data: str) -> None:
     """
     Find similar data items based on semantic similarity.
     
-    Uses the Embedder to find data items similar to the specified data item.
+    Uses the ChromaClient to find data items similar to the specified data item.
     
     Args:
         data (str): Name of the data item to find similar items for
         
     Returns:
-        None: Results are returned through the Embedder's get_similar_data method
+        None: Results are returned through the ChromaClient's get_similar_data method
     """
     conn = sqlite3.connect(NAME_DB)
     query = "SELECT name, description FROM data WHERE name = (?)"
     df = pd.read_sql_query(query, conn, params=[data])
-    embedding = Embedder()
-    results = embedding.get_similar_data(df['name'], df['description'])
+    chroma = ChromaClient()
+    results = chroma.get_similar_data(df['name'], df['description'])
     conn.close()
     return results
 
@@ -191,7 +191,7 @@ def add_data(name: str, description: str) -> None:
     Add a new data item to the database.
     
     Inserts a new record into the data table and adds the corresponding
-    embedding to the Embedder.
+    embedding to the ChromaClient.
     
     Args:
         name (str): Name of the data item to add
@@ -211,7 +211,7 @@ def add_data(name: str, description: str) -> None:
         
         # Run embedding insertion asynchronously using thread pool
         with ThreadPoolExecutor() as executor:
-            future = executor.submit(lambda: Embedder().insert_data(name, description))
+            future = executor.submit(lambda: ChromaClient().insert_data(name, description))
             # Wait for completion but don't block the main thread significantly
             future.result(timeout=30)  # 30 second timeout
             
@@ -282,7 +282,7 @@ def remove_data(name: str) -> None:
     Remove a data item from the database.
     
     Deletes a record from the data table and removes the corresponding
-    embedding from the Embedder.
+    embedding from the ChromaClient.
     
     Args:
         name (str): Name of the data item to remove
@@ -298,7 +298,7 @@ def remove_data(name: str) -> None:
             (name,)
         )
         conn.commit()
-        embedding = Embedder()
+        embedding = ChromaClient()
         embedding.remove_data(name)
         print(f"data '{name}' removed successfully.")
     except sqlite3.Error as e:
@@ -365,7 +365,7 @@ def update_data(name: str, description: str) -> None:
     Update an existing data item in the database.
     
     Updates the description of an existing data item and updates the
-    corresponding embedding in the Embedder.
+    corresponding embedding in the ChromaClient.
     
     Args:
         name (str): Name of the data item to update
@@ -385,7 +385,7 @@ def update_data(name: str, description: str) -> None:
         
         # Run embedding update asynchronously using thread pool
         with ThreadPoolExecutor() as executor:
-            future = executor.submit(lambda: Embedder().update_data(name, description))
+            future = executor.submit(lambda: ChromaClient().update_data(name, description))
             # Wait for completion but don't block the main thread significantly
             future.result(timeout=30)  # 30 second timeout
             
@@ -402,7 +402,7 @@ def embed_all_data() -> None:
     Regenerate embeddings for all data items in the database.
     
     Retrieves all data items from the database and creates embeddings
-    for each one using the Embedder.
+    for each one using the ChromaClient.
     
     Returns:
         None
@@ -412,7 +412,7 @@ def embed_all_data() -> None:
         data_items = get_data()
         
         # Create Embedder instance
-        embedding = Embedder()
+        embedding = ChromaClient()
         
         # Process all data items
         total_items = len(data_items)

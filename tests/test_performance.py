@@ -8,8 +8,9 @@ from pathlib import Path
 # Add current directory to Python path to ensure we can import data_similarity
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from data_similarity import Embedder
-import numpy as np
+from data_similarity import DataSimilarity
+from chroma_client import ChromaClient
+
 
 def measure_time_and_memory(func, *args, **kwargs):
     """
@@ -60,7 +61,8 @@ def test_generate_toc_structure_performance():
     print("dir_name", dir_name)
     
     # Create a test embedder instance
-    embedder = Embedder(db_path=os.path.join(dir_name,"data"), collection_name="test_collection")
+    chroma = ChromaClient(db_path=os.path.join(dir_name,"data"), collection_name="test_collection")
+    toc_builder = DataSimilarity()
     
     # Load test data from dedicated file
     test_data = []
@@ -77,13 +79,11 @@ def test_generate_toc_structure_performance():
 
     # Insert test data
     for name, description in test_data:
-        embedder.insert_data(name, description)
+        chroma.insert_data(name, description)
     
     # Measure performance
     execution_time, memory_used, peak_memory, result = measure_time_and_memory(
-        embedder.generate_toc_structure, 
-        max_items=100
-    )
+        toc_builder.generate_toc_structure)
     
     print(f"Execution time: {execution_time:.4f} seconds")
     print(f"Memory used: {memory_used:.2f} MB")
@@ -92,7 +92,7 @@ def test_generate_toc_structure_performance():
     
     # Clean up test data
     for name, _ in test_data:
-        embedder.remove_data(name)
+        chroma.remove_data(name)
     
     return {
         'execution_time': execution_time,

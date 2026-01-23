@@ -2,7 +2,7 @@ from dash import html, Input, Output, dcc, callback
 import utils
 import json
 import os
-from data_similarity import Embedder
+from data_similarity import DataSimilarity
 from typing import List, Dict, Any, Union
 
 # Path to store the cached TOC content
@@ -18,7 +18,7 @@ def save_toc_structure(structure) -> None:
     
     Args:
         structure (list[dict]): The hierarchical structure data to be cached.
-            This should be the output from Embedder.generate_toc_structure().
+            This should be the output from DataSimilarity.generate_toc_structure().
             
     Returns:
         None
@@ -174,15 +174,18 @@ def update_toc(n_clicks: int) -> Union[html.Div, Any]:
     # On first load (n_clicks = 0), try to load cached structure
     # On subsequent clicks, always regenerate and save new structure
     if n_clicks == 0:
+        print("load_toc_structure")
         cached_structure = load_toc_structure()
         if cached_structure is not None:
             # Return cached content if available on first load
             # Hide loading indicator when done
+            print("reuse cache value")
             return render_toc_from_structure(cached_structure)
     
     # Generate new structure (either on first load with no cache, or on button click)
-    embeddings = Embedder()
-    structure = embeddings.generate_toc_structure()
+    toc_builder = DataSimilarity()
+    print("generate_toc_structure")
+    structure = toc_builder.generate_toc_structure()
 
     # Save the generated structure for future use
     save_toc_structure(structure)
