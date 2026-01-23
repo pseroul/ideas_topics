@@ -7,4 +7,4 @@ chromadb
 umap-learn
 scikit-learn
 sentence_transformers
-keybert
+dash_bootstrap_components

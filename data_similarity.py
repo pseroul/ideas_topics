@@ -7,7 +7,7 @@ import umap
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import MinMaxScaler
-from keybert import KeyBERT
+from sklearn.feature_extraction.text import TfidfVectorizer
 import gc
 
 class Embedder:
@@ -36,8 +36,6 @@ class Embedder:
             name=collection_name,
             embedding_function=self.emb_fn
         )
-
-        self.kw_model = KeyBERT(model=self.model_name)
 
         
     def format_text(self, name: str, description: str) -> str:
@@ -285,52 +283,65 @@ class Embedder:
     
     def generate_synthetic_title(self, cluster_docs: list[str]) -> str:
         """
-        Extracts the most representative keywords to form a coherent 2-3 word title.
+        Generate a synthetic title from a cluster of ideas using TF-IDF analysis.
         
-        This method analyzes a cluster of document texts and generates a synthetic
-        title by extracting the most representative keywords using KeyBERT topic modeling.
-        The resulting title combines 1-2 keywords into a coherent phrase suitable for
-        hierarchical organization.
+        This method analyzes a group of related documents to extract the most
+        significant terms and create a coherent, descriptive title that represents
+        the semantic content of the cluster.
         
         Args:
-            cluster_docs (list[str]): A list of document texts belonging to the same cluster.
-                Each document should be a string containing the content to analyze.
-                
+            cluster_docs (list[str]): List of document texts in the cluster
+            
         Returns:
-            str: A generated title consisting of 1-2 representative keywords joined by "&".
-                Returns "Untitled Section" if the input list is empty.
-                Returns "General Topic" if keyword extraction fails.
-                Returns a fallback title based on the first document if all else fails.
+            str: Generated synthetic title for the cluster
         """
         if not cluster_docs:
-            return "Untitled Section"
+            return "New Section"
         
-        # Combine documents into a single text block
-        # We clean basic punctuation to help keyword extraction
-        full_text = " ".join([re.sub(r'[^\w\s]', '', doc.lower()) for doc in cluster_docs])
+        clean_docs = [re.sub(r'[^\w\s]', ' ', doc.lower()) for doc in cluster_docs]
 
         try:
-            # Extract keywords
-            keywords = self.kw_model.extract_keywords(
-                full_text, 
-                keyphrase_ngram_range=(1, 2), 
-                stop_words='english',
-                use_mmr=True, # Diversifies the result to avoid redundancy
-                diversity=0.7,
-                top_n=2
+            # On extrait un peu plus de termes pour avoir du choix après filtrage
+            vectorizer = TfidfVectorizer(
+                stop_words='english', 
+                ngram_range=(1, 2), 
+                max_features=30 
             )
-
-            if not keywords:
-                return "General Topic"
-
-            # We take the top 1 or 2 results and format them
-            # Result format is [('keyword', score), ...]
-            title_parts = [k[0] for k in keywords]
             
-            # Create a title from the top 1 or 2 phrases
-            final_title = " & ".join(title_parts).title()
+            tfidf_matrix = vectorizer.fit_transform(clean_docs)
+            scores = np.asarray(tfidf_matrix.sum(axis=0)).flatten()
+            terms = vectorizer.get_feature_names_out()
             
-            return final_title
+            # Tri des termes par score TF-IDF décroissant
+            sorted_indices = np.argsort(scores)[::-1]
+            sorted_terms = [terms[i] for i in sorted_indices]
+            
+            final_selection = []
+            
+            for term in sorted_terms:
+                # Sécurité : On limite à 2 ou 3 concepts clés pour le titre
+                if len(final_selection) >= 2:
+                    break
+                
+                # On vérifie si les mots du terme actuel sont déjà présents 
+                # dans les termes déjà sélectionnés (et inversement)
+                words_in_term = set(term.split())
+                is_redundant = False
+                
+                for selected in final_selection:
+                    words_in_selected = set(selected.split())
+                    # Si intersection non vide (ex: 'hardware' et 'hardware recommendation')
+                    if words_in_term.intersection(words_in_selected):
+                        is_redundant = True
+                        break
+                
+                if not is_redundant:
+                    final_selection.append(term)
+
+            # Mise en forme
+            title = " & ".join([t.capitalize() for t in final_selection])
+            
+            return title if len(title) > 2 else "Divers & " + cluster_docs[0][:20]
 
         except Exception:
-            return "Section: " + cluster_docs[0][:20].title()
+            return "Section : " + cluster_docs[0][:30] + "..."
