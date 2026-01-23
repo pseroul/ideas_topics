@@ -1,4 +1,5 @@
 import re
+import utils
 import numpy as np
 from typing import Any
 from chromadb.utils import embedding_functions
@@ -38,36 +39,7 @@ class Embedder:
         )
 
         
-    def format_text(self, name: str, description: str) -> str:
-        """
-        Format text for storage in the embedding database.
-        
-        Formats the name and description into a structured string for embedding generation.
-        
-        Args:
-            name (str): The name/title of the data item
-            description (str): The description/content of the data item
-            
-        Returns:
-            str: Formatted string combining name and description
-        """
-        return f"{name}. {name}: {description}"
     
-    def unformat_text(self, name: str, description: str) -> str:
-        """
-        Unformat text from the embedding database storage format.
-        
-        Reverses the formatting applied by format_text, extracting the original
-        description from the stored formatted string.
-        
-        Args:
-            name (str): The name/title of the data item
-            description (str): The formatted description from the database
-            
-        Returns:
-            str: Extracted original description
-        """
-        return description.replace(f"{name}. {name}:", "")
 
     def insert_data(self, name: str, description: str) -> None:
         """
@@ -81,7 +53,7 @@ class Embedder:
             description (str): The description/content of the data item to insert
         """
         self.collection.add(
-            documents=[self.format_text(name, description)],
+            documents=[utils.format_text(name, description)],
             metadatas=[{"name": name}],
             ids=[name]
         )
@@ -98,7 +70,7 @@ class Embedder:
             description (str): The new description/content for the data item
         """
         self.collection.update(
-            documents=[self.format_text(name, description)],
+            documents=[utils.format_text(name, description)],
             metadatas=[{"name": name}],
             ids=[name]
         )

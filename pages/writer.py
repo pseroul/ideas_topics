@@ -1,7 +1,8 @@
 from dash import html, Input, Output, dcc, callback
-from data_similarity import Embedder
+import utils
 import json
 import os
+from data_similarity import Embedder
 from typing import List, Dict, Any, Union
 
 # Path to store the cached TOC content
@@ -50,7 +51,6 @@ def load_toc_structure():
 
 def render_toc_from_structure(structure) -> html.Div:
     """Render the TOC from a structure."""
-    embeddings = Embedder()
     
     # Check if structure has the expected format (flat structure from our optimized version)
     if not structure or not isinstance(structure, list):
@@ -112,7 +112,7 @@ def render_toc_from_structure(structure) -> html.Div:
             return html.Li(section_content)
         else:
             # final idea
-            text = embeddings.unformat_text(node['title'], node["text"])
+            text = utils.unformat_text(node['title'], node["text"])
             full_text = node['title'] + " : " + text
             
             return html.Li([
